@@ -1,0 +1,47 @@
+> Shift Pattern Analysis — Meal Break / Punch Abuse / Edge Cases - approved. make it exist in the schema if not yet existing. give each problem a scenario
+> Shift Label / Block Architecture — slot_order Explanation - approved. make it exist in the schema if not yet existing. give each problem a scenario
+> Gap II — 201/202 File Format - approved. make it exist in the schema if not yet existing. give each problem a scenario
+> Gap KK — Missing Fields from Masterlist + NULL Handling - approved. make it exist in the schema if not yet existing. give each problem a scenario. provide sample dummy data but dont seed it yet.
+> Salary Tiers and Conflicts - approved. make it exist in the schema if not yet existing. give each problem a scenario
+> Training Period / Probation / Employment Timeline — "Still Blurry" - is that what the law mandates? lets just make it configurable. im still unsure if this is what the client practice.
+> Biometric Conflict Prevention — Accidental UID Changes - approved. make it exist in the schema if not yet existing. give each problem a scenario. also, im thinking of having another column on tbl_employee for the employees name in the device. the device could also store names for users. the thing is i think it could also be used for reconciliation. like having a ui where Minerva users could select which device name matches a user. or whatever. maybe also have this in a reconciliation page or tab that exists already? give your best suggestions
+> Superadmin Role — Non-Technical Onboarding - i think step 3 best fits the HR admin. approved. make it exist in the schema if not yet existing. give each problem a scenario. keep shift slot naming unique.
+> Admin Role — "More Than Just Skinned HR" - now that you have mentioned a Payroll Data View tab idea, i want that to also be included for HR role/s. it should at employee info tab/page and summary. approved and make it exist on both roles and the schema. provide suggestions and more recommendations on how to implement this as my idea is still not fleshed out that well and give more ideas for what to include for admin role that does not exist yet in other user roles that feels appropriate.
+> Payroll for Minerva — Drop Service Charges and 13th Month? - not really drop but just make them optional. the focus with Minerva is the timekeeping and attendance tracking of employees. i just added a few bits and bobs like the modules we've agreed on including for mvp and post-mvp for Minerva (and to some extent, Julie). the client wants a consolidated view of net hours, deductions, additionals, and computed pay data per employee per cutoff. what you are suggesting would be some nice inclusions but lets just make them optional and configurable. nevertheless, approved. make it exist in the schema if not yet existing. give each problem a scenario.
+> ND (Night Differential) Employees — Breaks - i was told to make a toggleable checkbox that tells if an employee's day shift has break or not. client told me that head of operat know their stuff and to just let them select if a shift has that or not. another thing they told me is that if it is more than 9 hours, it has break but but if it is 8 or below there is none. but it varies. so best way to it is to let the coordinators do their thing. what do you think of this? is this a good approach or not? obviously, this is only for Minerva but should we keep it for Julie?
+> Development Timeline — Realistic Assessment - lets put our full focus on making this functional for April 31. if i fail on that again, which i always end up doing, make a contingency plan that focuses on a new deadline for may 4.
+
+for mvp, lets focus on having a working employee masterlist extraction that matches table columns to the excel masterlist file's headers. make sure everything is complete and add an additional (which does not exist in the excel file btw) on the employee's table as per my inquiry and instruction. after that is the schedule and shift creation for employees per subdept. then the timekeeping computation engine and mechanisms that validates the actual worktime of employees to their assigned schedules and calculates net hours, deductions, additionals, etc. another thing is the biometric device bridge, but for now lets use a mock html file (create a comprehensive plan for implementation of this as this will be used on my phone) to spoof or simulate the biometric device to be used. 
+
+i am to provide files later for the masterlist, module map and build timeline, and the files to reverse-engineer and use as guide for the biometrics bridge and connection, timekeeping, schedule and shift creation, etc. do note this as i may forget to provide these.
+
+do provide me a brutal breakdown if my plan or goal is realistic. done be afraid to tell me the truth. final date i have for this is may 24. any more than that im dead.
+
+i'll need a frontend spa shell prototype once i finish this database design and set scalable goals and plans to get some feedbacks and adjust as needed. once then i can proceed with settling on what is needed for mvp in apr 31. then developing these: biometric sync → raw log display → schedule grid → timekeeping computation → leave → reports. do you think this is the right order? adjust as needed and base on the future decisions we'll make
+> Gap NN — What Was This? - approved. make it exist in the schema if not yet existing. give each problem a scenario
+> issue 1 - in the old build i have, i considered this and developed mechanism that adds another block of shift (called continuation) apart from the original shift they are assigned within that day. this is called the flexible/broken schedule. ill attach the flow later from roster management and shift creation to validation of worktime rendered to assigned schedule.
+> issue 2 - elaborate on this as i do not understand significance of this for the project. enlighten me
+> issue 3 - proceed
+> issue 4 - proceed
+> issue 5 - use a MySQL generated column
+> issue 6 - proceed
+> issue 7 - client has the same starting date and ending date for both companies. under Minerva, consider this and provide a good resolution. what do you mean anyway
+> issue 8 - proceed
+> issue 9 - proceed
+> issue 10 - proceed 
+> issue 11 - refer to what i said about 13th month pay and service charge distribution from earlier
+> issue 12 - proceed
+> issue 13 - proceed. do note that for development and implementation
+> issue 14 - do include that anyway already for Minerva
+> issue 15 - algorithm reference is to be provided later. once you got it, provide suggestions for ux and other improvments
+> issue 16 - it must be enforeced that schedules for the next cutoff period must be published already before it is already underway. once published, coordinators cant do no alterations anymore as it is handed off to the HR admin. the HR admin however could modify it based on the submitted forms (OT, Leave, etc.) and if the need arises.
+> issue 17 - what way to address if the need to display multiple sched types arises? if that will ever be an edge case for Minerva
+> issue 18 - another thing i may have forgot is that HR admins could assign sched types in their schedule grid. if an employee did not do duty for a DOD date, im debating if that should be counted back as rest day or absence. what is the best way to approach this? how about legalities?
+> issue 19 - proceed
+> issue 20 - proceed 
+> issue 21 - proceed
+> issue 22 - proceed
+> issue 23 -  proceed
+> issue 24 - proceed. make them override fields that only populate when the continuation time differs from the preset
+> issue 25 - proceed
+> note the things i am still unsure of here and from the past and ill raise it to the client for clarification

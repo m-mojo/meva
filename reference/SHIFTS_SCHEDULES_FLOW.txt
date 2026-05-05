@@ -1,0 +1,678 @@
+# Shifts & Schedules Management — Complete Flow Documentation
+
+**System**: HRIS Schedule Management  
+**Interface**: `shifts_schedules.html` | Head Operations Role  
+**Updated**: April 24, 2026  
+**Scope**: Shift preset creation → Roster assignment → Schedule publishing
+
+---
+
+## System Overview
+
+The Shifts & Schedules page provides head operations managers with tools to:
+1. **Create reusable shift presets** (time templates)
+2. **Build rosters** by assigning shifts to employees
+3. **Manage schedule states** (off days, leaves, overtime, etc.)
+4. **Publish finalized schedules** to employees
+
+**Two-Tab Interface:**
+- **Roster Tab**: Interactive schedule grid with 16-day cutoff (Mar 26 – Apr 10)
+- **Shift Presets Tab**: CRUD operations for shift templates
+
+---
+
+## PART 1: SHIFT PRESETS TAB
+
+### Creating a Shift Preset
+
+**Entry Point**: `Tab: "Shift Presets"` → `+ New Shift Preset` button
+
+**Modal**: `presetModal`
+
+**Form Fields** (all with validation):
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| Sub-Department | Dropdown | ✓ | Filters presets by subdept; user can only see accessible subdepts |
+| Shift Name | Text | ✓ | e.g. "Morning Admin", "Night Shift" |
+| Time In | Time (HH:MM) | ✓ | Triggers `detectMidnight()` and `calculateTotalHours()` |
+| Time Out | Time (HH:MM) | ✓ | Auto-calculates total hours if less than time_in |
+| Total Hours | Number | ✗ | Auto-calculated but can be manually overridden |
+| Grace Period | Number (minutes) | ✗ | Default: 15 min; range 0–60 |
+| Shift Block | Dropdown | ✓ | 1st / 2nd / 3rd / Reliever → stored as `block` (1|2|3|"rel") |
+| Crosses Midnight | Checkbox | ✗ | Auto-detected if time_out < time_in |
+| Has Break | Checkbox | ✗ | Boolean flag for shift configuration |
+| Remarks | Text | ✗ | Descriptive notes |
+
+**Data Flow on Save**:
+```
+savePreset()
+  ├─ Validate required fields
+  ├─ POST /api/shift-presets (create) OR PUT /api/shift-presets/:id (edit)
+  ├─ Database: tbl_shift
+  │   └─ Columns: shift_id, subdept_id, name, time_in, time_out, block, grace_period, 
+  │                crosses_midnight, has_break, total_hours, remarks, created_at
+  ├─ Reload SHIFT_PRESETS array
+  └─ Re-render presets grid with success toast
+```
+
+**Preset Card Display** (Grid Layout):
+```
+┌─────────────────────────────┐
+│ [Preset Name]        [1ST]  │  ← Header: name, shift block badge
+│ Sub-Dept Name               │
+│ 08:00 → 17:00 (+1)          │  ← Time range, midnight indicator
+├─────────────────────────────┤
+│ Grace: 15 min | Hours: 8 h  │  ← Metadata
+├─────────────────────────────┤
+│ [Edit] [Deactivate]         │  ← Action buttons
+└─────────────────────────────┘
+```
+
+**Shift Block Badges**:
+- `1ST` (blue) → Block 1
+- `2ND` (green) → Block 2  
+- `3RD` (orange) → Block 3
+- `REL` (purple) → Reliever
+
+### Editing a Shift Preset
+
+**Entry Point**: Click `[Edit]` on preset card
+
+**Flow**:
+```
+editPreset(presetId)
+  ├─ Populate modal with existing values (form prefill)
+  ├─ Change title to "Edit Shift Preset"
+  ├─ User modifies fields
+  └─ Save → PUT /api/shift-presets/:id → Update SHIFT_PRESETS
+```
+
+### Deactivating a Shift Preset
+
+**Entry Point**: Click `[Deactivate]` on preset card
+
+**Flow**:
+```
+deactivatePreset(presetId)
+  ├─ Soft delete (no confirmation required)
+  ├─ DELETE /api/shift-presets/:id
+  ├─ Remove from SHIFT_PRESETS array
+  └─ Toast: "Preset removed" → Re-render
+```
+
+---
+
+## PART 2: ROSTER TAB — Main Schedule Grid
+
+### Roster Structure
+
+**Layout**: Hierarchical table per sub-department
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│ OPERATIONS ADMIN (3 employees)                  [↻ Rotate] [🗑 Clear Day Offs] [⊞ Bulk Assign]
+├──────────────────────────────────────────────────────────────────┤
+│ #│ Employee       │ Position       │ Shift │ Mar26│ Mar27│ Mar28│...
+├──────────────────────────────────────────────────────────────────┤
+│ 1│ Doe, John      │ Administrator  │ 1ST   │08:00│08:00│  OFF │
+│ 2│ Smith, Jane    │ Administrator  │ 2ND   │14:00│14:00│14:00│
+│ 3│ Brown, Mike    │ Data Entry     │ REL   │08:00│08:00│08:00│
+└──────────────────────────────────────────────────────────────────┘
+```
+
+**Column Groups**:
+- **Employee Identity** (sticky, draggable): #, Employee Name, Position
+- **Shift Block**: Current shift hierarchy badge (1ST/2ND/3RD/REL)
+- **Day Columns** (16 total): Interactive cells showing time or status
+
+**Sub-Dept Header Controls**:
+| Button | Action |
+|--------|--------|
+| `↻ Rotate` | Cycle employees in row order |
+| `🗑 Clear Day Offs` | Bulk remove all OFF status in subdept |
+| `🗑 Clear Schedule` | Erase entire subdept schedule |
+| `⊞ Bulk Assign` | Toggle bulk mode (assign preset to all employees) |
+
+### Day Cell States & Display
+
+**Cell States** (Color-coded badges):
+
+| Badge | Color | Status | Time Editable | Behavior |
+|-------|-------|--------|---------------|----------|
+| 🟡 `OFF` | Gold | Block | ❌ | Rest day (one per position per day) |
+| 🔴 `HOLIDAY` | Red | None | ⚠ Optional | Company holiday |
+| 🟠 `DOD` | Orange | None | ⚠ Optional | Day-Off with Duty |
+| 🟣 `ABSENT` | Purple | Block | ❌ | Unplanned absence |
+| 🔵 `REGOT` | Blue | None | ⚠ Optional | Regular Overtime |
+| 🟢 `ONLEAVE` | Green | Block | ❌ | Approved leave |
+| 🔶 `CHANGEOFF` | Orange-Red | None | ⚠ Optional | Changed day off |
+| 🩵 `FVL` | Cyan | None | ⚠ Optional | Forced Vacation Leave |
+| — | — | None | ✓ | Shift time (e.g., 08:00–17:00) |
+| 🟣 `FLEX` | Purple | None | ✓ | Flexible/dual shift |
+
+**Data Model per Cell**:
+```javascript
+cellData = {
+  time_in: "HH:MM" | null,
+  time_out: "HH:MM" | null,
+  status: "off" | null,           // Blocks entry entirely
+  sched_type: "off" | "absent" | "onleave" | "regot" | "dod" | "changeoff" | "fvl" | null,
+  crosses_midnight: boolean,
+  night_diff: boolean,
+  is_ot: boolean,
+  shift_id: number | null,
+  shift_block: 1 | 2 | 3 | "rel" | null,
+  flex_schedule: 0 | 1,
+  flex_time_in: "HH:MM" | null,   // Second shift time
+  flex_time_out: "HH:MM" | null,
+  is_holiday: 0 | 1
+}
+```
+
+### Rest Day Conflict Detection
+
+**Rule**: Maximum one employee per position per day can have OFF status
+
+**Trigger**: When user tries to set `status="off"`
+
+**Logic**:
+```javascript
+if (typeOrStatus === 'off') {
+  const emp = EMPLOYEES.find(x => x.id === ctxTarget.empId);
+  const conflict = EMPLOYEES
+    .filter(e => e.subdept_id === emp.subdept_id 
+                 && e.position === emp.position 
+                 && e.id !== emp.id)
+    .some(e => getCell(e.id, dayKey)?.status === 'off');
+  
+  if (conflict) {
+    showToast(`Cannot assign — another ${emp.position} is already off on Day ${dayKey}.`, 'warn');
+    return;
+  }
+}
+```
+
+---
+
+## PART 3: ASSIGNMENT FLOWS
+
+### FLOW 1: Apply Preset to Entire Row
+
+**Entry Point**: Click shift hierarchy badge (e.g., `1ST`) on employee row
+
+**Behavior** (Normal Mode):
+```
+Click shift badge
+  ├─ openCtxShiftCol() context menu appears
+  ├─ Shows all presets for that subdept
+  │   └─ Format: "[Badge] Preset Name  08:00–17:00"
+  ├─ Select preset
+  └─ applyPresetToRow(empId, presetId)
+      ├─ Update emp.shift_hier = preset.block
+      ├─ Iterate all 16 days
+      ├─ Skip cells with blocking status (OFF, ABSENT, ONLEAVE)
+      ├─ Fill cells with: time_in, time_out, crosses_midnight
+      └─ Render & toast: "Morning Shift applied to all 16 days"
+```
+
+**Scroll Wheel Optimization**:
+```
+Mouse wheel over shift badge (no context menu)
+  ├─ Cycle to next preset in list
+  ├─ Apply to entire row
+  └─ Display badge update
+```
+
+### FLOW 2: Bulk Assign to Entire Sub-Department
+
+**Entry Point**: Click `⊞ Bulk Assign` in sub-dept header
+
+**Banner Appears**:
+```
+● BULK ASSIGN ACTIVE — Click any shift hierarchy badge to assign that shift 
+to all employees. Right-click a day cell to override individual entries. [✕ Exit]
+```
+
+**Behavior**:
+```
+bulkModeActive = true
+bulkModeSubdept = subdeptId
+
+Click shift badge
+  ├─ openBulkShiftCtx() context menu
+  ├─ Menu title: "Bulk Assign — All Employees"
+  ├─ List all presets for subdept
+  └─ Select preset → bulkApplyPreset(subdeptId, presetId)
+      ├─ Get all employees in subdept
+      ├─ For each employee & each day:
+      │   └─ Skip if status is blocking
+      ├─ Set emp.shift_hier, fill all cells
+      └─ Toast: "Morning Shift applied to 12 employees"
+
+Exit Bulk Mode
+  ├─ Click [✕ Exit] button
+  ├─ bulkModeActive = false
+  └─ Banner disappears
+```
+
+### FLOW 3: Apply Preset to Individual Day Cell
+
+**Entry Point**: Right-click day cell
+
+**Context Menu**:
+```
+┌─────────────────────────────┐
+│ Cell Options: Doe · Day 26  │
+├─────────────────────────────┤
+│ [Morning Shift] 08:00–17:00 │
+│ [Night Shift]   20:00–05:00 │
+│ ─────────────────────────────│
+│ Set Status                  │
+│ 🟡 Off (Rest Day)           │
+│ 🔴 Holiday                  │
+│ 🟠 DOD                      │
+│ 🟣 Absent                   │
+│ 🔵 Reg OT                   │
+│ 🟢 On Leave                 │
+│ 🔶 Change Off               │
+│ 🩵 FVL                      │
+│ ─────────────────────────────│
+│ ✏️ Edit Time In / Out       │
+│ ✕ Clear Cell                │
+│ 🗑 Clear This Row           │
+└─────────────────────────────┘
+```
+
+**Apply Preset**:
+```
+Select preset from menu
+  ├─ applyShiftPresetToCell(presetId)
+  ├─ Load: time_in, time_out, crosses_midnight
+  ├─ Preserve existing non-blocking status
+  └─ Render & toast: "Morning Shift applied."
+```
+
+**Apply Status/Legend**:
+```
+Click legend item (e.g., "Off")
+  ├─ applyLegend(typeOrStatus)
+  ├─ Determine if blocking (OFF, ABSENT, ONLEAVE)
+  ├─ Check rest day conflict (if OFF)
+  ├─ Build cell data:
+  │   ├─ Blocking types: clear times (time_in=null, time_out=null)
+  │   ├─ Time-optional types: preserve times
+  │   └─ Set sched_type and status fields
+  └─ Render & toast: "Off (Rest Day) assigned."
+```
+
+### FLOW 4: Manual Time Entry (Advanced)
+
+**Entry Point**: Right-click cell → `✏️ Edit Time In / Out` OR double-click cell
+
+**Modal**: `editTimeModal`
+
+**Form**:
+```
+Edit Time In / Out
+├─ Time In:        [08:00]
+├─ Time Out:       [17:00]
+├─ Crosses Midnight checkbox (auto-detected)
+├─ Night Differential checkbox
+├─ Is OT checkbox
+├─ Scope:
+│  ├─ ◯ This cell only
+│  └─ ◉ Entire row (all 16 days)
+├─ ────────────────────────
+├─ Flexible Schedule:
+│  ├─ ◉ Regular Shift
+│  └─ ◯ Flexible Schedule (Dual Shift)
+│     └─ [Shows if selected]
+│        ├─ Flex Shift Time In: [12:00]
+│        └─ Flex Shift Time Out: [20:00]
+└─ [Cancel] [Save]
+```
+
+**Save Logic**:
+```
+saveEditTime()
+  ├─ Get time_in, time_out, crosses_midnight, night_diff, is_ot
+  ├─ Get scope: 'cell' or 'row'
+  ├─ If flexible schedule enabled:
+  │   └─ Store flex_time_in, flex_time_out, flex_schedule=1
+  ├─ If scope='row':
+  │   ├─ Iterate all 16 days for this employee
+  │   └─ Skip blocking status cells
+  ├─ If scope='cell':
+  │   └─ Update single cell
+  └─ Render & toast
+```
+
+---
+
+## PART 4: TOOLBAR & BULK ACTIONS
+
+### Undo/Redo System
+
+**State Management**:
+```javascript
+undoStack = []    // Stores previous snapshots
+redoStack = []    // Stores next snapshots
+MAX_HISTORY = 50  // Limit stored states
+
+On any change:
+  ├─ captureState() → JSON.stringify(scheduleState)
+  ├─ Push to undoStack
+  ├─ Clear redoStack
+  └─ updateUndoButtonState() → Enable/disable buttons
+
+undo() / redo()
+  ├─ Swap stacks & restore scheduleState
+  └─ Render & toast
+```
+
+**Keyboard**: `Ctrl+Z` (undo), `Ctrl+Y` (redo)
+
+### Rotation Feature
+
+**Flow**:
+```
+[↻ Rotate] button
+  ├─ rotateAll() or rotateSubdept(subdeptId)
+  ├─ Shuffle EMP_DISPLAY_ORDER[subdeptId]
+  ├─ Re-render roster
+  └─ Toast: "Employees rotated"
+```
+
+### Clear Actions
+
+**Clear Day Offs** (Warning Modal):
+```
+confirmClearDayOffs()
+  ├─ Show confirm modal with scope (all / specific subdept)
+  ├─ User clicks [Clear]
+  ├─ Iterate scheduleState
+  ├─ Delete all entries where status === 'off'
+  └─ Toast: "Cleared 8 day off(s)"
+```
+
+**Clear All Schedules** (Destructive Warning):
+```
+confirmClearAll()
+  ├─ Show confirm modal: "This cannot be undone"
+  ├─ User clicks [Clear]
+  ├─ Delete ALL scheduleState entries for scope
+  ├─ Reset emp.shift_hier to null
+  └─ Toast: "Schedule cleared"
+```
+
+---
+
+## PART 5: SCHEDULE PUBLICATION
+
+### Pre-Publish Validation
+
+**Entry Point**: `⬆ Publish Schedule` button (top right)
+
+**Validation Rules**:
+```javascript
+validateScheduleCompleteness()
+  ├─ Get all started subdepts (subdepts with any assignment)
+  ├─ For each started subdept:
+  │   ├─ For each employee in subdept:
+  │   │   └─ Check: filled_days === 16 (or required_days)
+  │   └─ If any employee has filled_days < required_days:
+  │       └─ Add error to list
+  ├─ Return: { isValid: bool, errors: [...] }
+  
+Errors example:
+  └─ { subdept: "Operations", employee: "Doe, John", 
+       filled: 14, required: 16, missing: [26, 27] }
+```
+
+**Publish Modal**:
+```
+Publish Schedule
+├─ Mar 26 – Apr 10, 2026 · Admin
+├─ ────────────────────────────────
+├─ Total employees: 25
+├─ Subdepts covered: 3
+├─ Schedule completeness: 96%
+├─ ────────────────────────────────
+│ Once published, this schedule becomes visible to employees.
+│ Individual cells can still be overridden after publishing.
+├─ [Cancel] [✓ Confirm Publish]
+```
+
+### Publishing Action
+
+**Flow**:
+```
+confirmPublish()
+  ├─ POST /api/schedules/publish
+  │   ├─ Body: { cutoff_id, data: scheduleState }
+  │   └─ Database: Mark cutoff as published=1
+  ├─ Update UI:
+  │   ├─ Change draft status indicator to "PUBLISHED"
+  │   ├─ Disable draft bar
+  │   └─ Hide auto-publish deadline
+  ├─ Trigger employee notifications (separate system)
+  └─ Toast: "Schedule published to 25 employees"
+```
+
+**Draft Status Bar** (Before Publish):
+```
+⚠ Draft mode. Changes are not yet visible to employees.
+Auto-publish deadline: Apr 10, 2026 11:59 PM.
+[Publish Now]
+```
+
+---
+
+## PART 6: EMPLOYEE DRAG-TO-REORDER
+
+### Employee Row Dragging
+
+**Entry Point**: Grab employee row (drag handle appears on hover)
+
+**Drag States**:
+```
+Hover over row
+  └─ Show drag handle icon
+
+Drag start
+  ├─ Show ghost card (floating preview)
+  ├─ Original row opacity = 0.35
+  └─ Start tracking mouse position
+
+Drag over target row
+  ├─ If cursor above target: outline top shadow
+  ├─ If cursor below target: outline bottom shadow
+
+Drop
+  ├─ Reorder EMP_DISPLAY_ORDER[subdeptId]
+  ├─ Render roster
+  └─ Save new order
+```
+
+**Ghost Card**:
+```
+┌─────────────────────┐
+│ Doe, John           │
+│ Administrator       │
+└─────────────────────┘
+```
+
+---
+
+## PART 7: CUTOFF & FILTERING
+
+### Cutoff Selector
+
+**Dropdown** (Toolbar):
+```
+[Cutoff ▼]
+├─ Mar 26 – Apr 10, 2026 (current)
+├─ Mar 11 – Mar 25, 2026 (prev)
+└─ Apr 11 – Apr 25, 2026 (next)
+```
+
+**Behavior**:
+```
+Change cutoff
+  ├─ filterRoster()
+  ├─ Load schedules for new date range
+  ├─ Update CUTOFF_DATES
+  ├─ Re-render table with new columns
+  └─ Preserve employee order & assignments
+```
+
+### Sub-Department Filter
+
+**Dropdown** (Toolbar):
+```
+[Sub-dept ▼]
+├─ All Sub-depts
+├─ Operations Admin
+├─ HR Department
+└─ IT Department
+```
+
+**Behavior**:
+```
+Change filter
+  ├─ filterRoster()
+  ├─ Show/hide subdept sections
+  └─ Count employees shown
+```
+
+---
+
+## PART 8: INFO BAR & STATISTICS
+
+**Display** (Below toolbar):
+```
+● Cutoff: Mar 26 – Apr 10, 2026
+| Total employees: 25
+| Days: 16
+| Rest days assigned: 18
+```
+
+**Calculations**:
+```
+updateInfoBar()
+  ├─ Total employees = EMPLOYEES.length (or filtered)
+  ├─ Days = CUTOFF_DATES.length (16)
+  ├─ Rest days assigned = Count cells where status='off'
+  └─ Update display
+```
+
+---
+
+## PART 9: ERROR HANDLING & TOASTS
+
+### Toast Notifications
+
+**Types**: `success`, `info`, `warn`, `error`
+
+**Examples**:
+```
+success:  "✓ Morning Shift applied to all 16 days"
+info:    "Undone."
+warn:    "Cannot assign — another Administrator is already off on Day 26."
+error:   "Failed to save shift preset. Please try again."
+```
+
+**Positioning**: Bottom-right corner, auto-dismiss after 4s
+
+---
+
+## PART 10: KEYBOARD SHORTCUTS
+
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+Z` | Undo |
+| `Ctrl+Y` | Redo |
+| `Esc` | Close context menu / modal |
+| Right-click | Open context menu (day cell) |
+| Mouse wheel | Cycle shift preset (on badge) |
+
+---
+
+## PART 11: DATABASE SCHEMA REFERENCES
+
+### tbl_shift (Shift Presets)
+```sql
+shift_id (PK)
+subdept_id (FK)
+name VARCHAR
+time_in TIME
+time_out TIME
+block ENUM('1','2','3','rel')
+grace_period INT (minutes)
+crosses_midnight BOOLEAN
+has_break BOOLEAN
+total_hours DECIMAL
+remarks TEXT
+created_at TIMESTAMP
+updated_at TIMESTAMP
+```
+
+### tbl_schedule (Employee Schedules)
+```sql
+schedule_id (PK)
+cutoff_id (FK)
+employee_id (FK)
+date DATE
+shift_id (FK, nullable)
+shift_block ENUM('1','2','3','rel', nullable)
+time_in TIME (nullable)
+time_out TIME (nullable)
+is_off BOOLEAN (rest day / onleave flag)
+sched_type ENUM('off','absent','onleave','regot','dod','changeoff','fvl', nullable)
+crosses_midnight BOOLEAN
+night_diff BOOLEAN
+is_ot BOOLEAN
+flex_schedule BOOLEAN
+flex_time_in TIME (nullable)
+flex_time_out TIME (nullable)
+is_holiday BOOLEAN
+created_at TIMESTAMP
+updated_at TIMESTAMP
+```
+
+---
+
+## API ENDPOINTS
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/subdepartments?user_id=X` | Fetch accessible subdepts |
+| GET | `/api/employees?user_id=X&sub_dept_ids=X,Y,Z` | Fetch employees |
+| GET | `/api/shift-presets?subdept_id=X` | List presets for subdept |
+| POST | `/api/shift-presets` | Create new preset |
+| PUT | `/api/shift-presets/:id` | Update preset |
+| DELETE | `/api/shift-presets/:id` | Deactivate preset |
+| GET | `/api/schedules?cutoff_id=X` | Load schedules for cutoff |
+| POST | `/api/schedules` | Create/update schedule entries |
+| POST | `/api/schedules/publish` | Publish cutoff schedule |
+| GET | `/api/holidays?start_date=X&end_date=Y` | Fetch holidays for range |
+
+---
+
+## Summary: Complete User Journey
+
+**Session Flow**:
+```
+1. Head Ops logs in → shifts_schedules.html
+2. View Roster tab (current week)
+3. Create shift presets if needed (Shift Presets tab)
+4. Return to Roster → Assign presets:
+   a. Bulk assign to entire subdept
+   b. Apply preset to single employee row
+   c. Adjust individual day cells via context menu
+   d. Edit times manually for special cases
+5. Review statistics & completeness
+6. Publish schedule → Employees notified
+7. Continue editing individual cells post-publish
+8. Export/download roster (future feature)
+```
