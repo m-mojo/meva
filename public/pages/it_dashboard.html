@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MINERVA — IT Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&family=Space+Mono:wght@400;700&family=Doto:wght@100..900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/css/shared.css" />
+</head>
+<body>
+  <div id="app">
+    <nav id="sidebar"></nav>
+    <div id="main">
+      <header id="topbar"></header>
+      <div id="page-content" class="page-content">
+
+        <!-- Page Header -->
+        <div class="page-header mb-lg">
+          <div>
+            <div class="page-title">Dashboard</div>
+            <div class="page-subtitle" id="today-date">—</div>
+          </div>
+          <div class="page-actions">
+            <a href="/pages/devices.html" class="btn btn-primary btn-sm">Device Management</a>
+          </div>
+        </div>
+
+        <!-- KPI Row -->
+        <div class="grid-4 mb-lg">
+          <div class="kpi-card">
+            <div class="kpi-label">Device Status</div>
+            <div class="kpi-value" id="kpi-device-status">
+              <span class="skeleton" style="width:64px;height:32px;display:inline-block;"></span>
+            </div>
+            <div class="kpi-meta t-caption">UTH + SSH</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Unresolved Punches</div>
+            <div class="kpi-value t-accent" id="kpi-unresolved">
+              <span class="skeleton" style="width:48px;height:32px;display:inline-block;"></span>
+            </div>
+            <div class="kpi-meta t-caption">Needs reconciliation</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Active Users</div>
+            <div class="kpi-value" id="kpi-users">
+              <span class="skeleton" style="width:48px;height:32px;display:inline-block;"></span>
+            </div>
+            <div class="kpi-meta t-caption">System accounts</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Last Sync</div>
+            <div class="kpi-value" id="kpi-last-sync" style="font-size:20px;">
+              <span class="skeleton" style="width:80px;height:32px;display:inline-block;"></span>
+            </div>
+            <div class="kpi-meta t-caption" id="kpi-last-sync-device">—</div>
+          </div>
+        </div>
+
+        <!-- Device Cards -->
+        <div class="grid-2 mb-lg">
+          <!-- UTH Device Card -->
+          <div class="card" id="uth-card">
+            <div class="card-header">
+              <div class="card-title">UTH Device</div>
+              <span class="tag" id="uth-status-tag">—</span>
+            </div>
+            <div class="card-body">
+              <div class="skeleton-row"></div>
+              <div class="skeleton-row"></div>
+              <div class="skeleton-row"></div>
+            </div>
+          </div>
+
+          <!-- SSH Device Card -->
+          <div class="card" id="ssh-card">
+            <div class="card-header">
+              <div class="card-title">SSH Device</div>
+              <span class="tag" id="ssh-status-tag">—</span>
+            </div>
+            <div class="card-body">
+              <div class="skeleton-row"></div>
+              <div class="skeleton-row"></div>
+              <div class="skeleton-row"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom grid: Reconciliation Queue + System Status -->
+        <div class="grid-2">
+          <!-- Reconciliation Queue -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Reconciliation Queue</div>
+              <a href="/pages/devices.html" class="btn btn-ghost btn-sm">View All</a>
+            </div>
+            <div class="card-body">
+              <table style="width:100%;border-collapse:collapse;" id="recon-table">
+                <thead>
+                  <tr>
+                    <th class="t-label" style="text-align:left;padding-bottom:var(--space-sm);">Device UID</th>
+                    <th class="t-label" style="text-align:left;padding-bottom:var(--space-sm);">Employee Match</th>
+                    <th class="t-label" style="text-align:left;padding-bottom:var(--space-sm);">Status</th>
+                    <th class="t-label" style="text-align:right;padding-bottom:var(--space-sm);">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="recon-tbody">
+                  <tr><td colspan="4"><div class="skeleton-row"></div></td></tr>
+                  <tr><td colspan="4"><div class="skeleton-row"></div></td></tr>
+                  <tr><td colspan="4"><div class="skeleton-row"></div></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- System Status -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">System Status</div>
+            </div>
+            <div class="card-body">
+              <div style="display:flex;flex-direction:column;gap:var(--space-sm);" id="sys-status-list">
+                <div class="skeleton-row"></div>
+                <div class="skeleton-row"></div>
+                <div class="skeleton-row"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /#page-content -->
+    </div><!-- /#main -->
+  </div><!-- /#app -->
+
+  <script src="/js/config.js"></script>
+  <script src="/js/auth.js"></script>
+  <script>
+    function timeAgo(dateStr) {
+      if (!dateStr) return '—';
+      const diff = Date.now() - new Date(dateStr).getTime();
+      const s = Math.floor(diff / 1000);
+      if (s < 60)   return `${s}s ago`;
+      if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+      if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+      return `${Math.floor(s / 86400)}d ago`;
+    }
+
+    function setKpi(id, val) {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = (val !== null && val !== undefined) ? String(val) : '—';
+    }
+
+    function setTag(id, online) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.className  = 'tag ' + (online ? 'tag-active' : 'tag-error');
+      el.textContent = online ? 'ONLINE' : 'OFFLINE';
+    }
+
+    function statusRow(label, value, ok) {
+      const color = ok === true ? 'var(--success)' : ok === false ? 'var(--accent)' : 'var(--text-secondary)';
+      return `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);">
+          <span style="font-size:13px;color:var(--text-secondary);">${label}</span>
+          <span style="font-size:13px;font-weight:500;color:${color};font-family:var(--font-mono);">${value}</span>
+        </div>`;
+    }
+
+    function deviceBody(d) {
+      return `
+        <div style="display:flex;flex-direction:column;gap:2px;">
+          ${statusRow('IP Address',   d.ip_address   || '—',   null)}
+          ${statusRow('Serial',       d.serial_number || '—',  null)}
+          ${statusRow('Last Sync',    timeAgo(d.last_sync_at), null)}
+          ${statusRow('Today Punches', d.today_punches ?? '—', null)}
+          ${statusRow('Firmware',     d.firmware_version || '—', null)}
+        </div>`;
+    }
+
+    /* ---- Load Devices ---- */
+    async function loadDevices() {
+      try {
+        const data    = await apiFetch('/devices');
+        const devices = data?.data || [];
+
+        let onlineCount = 0;
+        let latestSync  = null;
+        let latestDev   = '—';
+
+        const uth = devices.find(d => (d.company_code === 'UTH') || (d.device_name || '').includes('UTH'));
+        const ssh = devices.find(d => (d.company_code === 'SSH') || (d.device_name || '').includes('SSH'));
+
+        [{ dev: uth, cardId: 'uth-card', tagId: 'uth-status-tag', label: 'UTH' },
+         { dev: ssh, cardId: 'ssh-card', tagId: 'ssh-status-tag', label: 'SSH' }].forEach(({ dev, cardId, tagId, label }) => {
+          const card = document.getElementById(cardId);
+          if (dev) {
+            if (dev.is_online) onlineCount++;
+            setTag(tagId, dev.is_online);
+            card.querySelector('.card-body').innerHTML = deviceBody(dev);
+            if (dev.last_sync_at) {
+              const t = new Date(dev.last_sync_at).getTime();
+              if (!latestSync || t > latestSync) { latestSync = t; latestDev = label; }
+            }
+          } else {
+            setTag(tagId, false);
+            card.querySelector('.card-body').innerHTML =
+              `<div class="empty-state"><div class="t-caption">Device not configured</div></div>`;
+          }
+        });
+
+        /* KPI: device status */
+        setKpi('kpi-device-status',
+          onlineCount === 2
+            ? `<span style="color:var(--success);">2 / 2</span>`
+            : onlineCount === 1
+              ? `<span style="color:var(--warning);">1 / 2</span>`
+              : `<span style="color:var(--accent);">0 / 2</span>`
+        );
+
+        /* KPI: last sync */
+        setKpi('kpi-last-sync', latestSync ? timeAgo(latestSync) : '—');
+        document.getElementById('kpi-last-sync-device').textContent = latestDev ? `From ${latestDev} device` : '—';
+
+      } catch {
+        ['uth-status-tag','ssh-status-tag'].forEach(id => setTag(id, false));
+        setKpi('kpi-device-status', '<span class="t-caption" style="font-size:11px;">[ FAILED TO LOAD ]</span>');
+        setKpi('kpi-last-sync',     '—');
+      }
+    }
+
+    /* ---- Load Unresolved ---- */
+    async function loadUnresolved() {
+      const tbody = document.getElementById('recon-tbody');
+      try {
+        const data = await apiFetch('/devices/unresolved?limit=6');
+        const rows = data?.data || [];
+
+        setKpi('kpi-unresolved', rows.length > 0 ? rows.length : (data?.total ?? '0'));
+
+        if (!rows.length) {
+          tbody.innerHTML = `<tr><td colspan="4"><div class="empty-state"><div class="t-caption">No unresolved punches</div></div></td></tr>`;
+          return;
+        }
+        tbody.innerHTML = rows.map(r => {
+          const statusClass = r.reconciliation_status === 'unresolved' ? 'tag-error' : 'tag-warning';
+          return `
+            <tr style="border-top:1px solid var(--border);">
+              <td style="padding:10px var(--space-xs) 10px 0;">
+                <span style="font-family:var(--font-mono);font-size:12px;color:var(--text-primary);">${r.device_user_id || '—'}</span>
+              </td>
+              <td style="padding:10px var(--space-xs);">
+                <span style="font-size:13px;color:var(--text-secondary);">${r.employee_name || r.biometric_name || 'Unknown'}</span>
+              </td>
+              <td style="padding:10px var(--space-xs);">
+                <span class="tag ${statusClass}" style="font-size:10px;">${(r.reconciliation_status || 'unresolved').toUpperCase()}</span>
+              </td>
+              <td style="padding:10px 0 10px var(--space-xs);text-align:right;">
+                <a href="/pages/devices.html" class="btn btn-ghost btn-sm">Resolve</a>
+              </td>
+            </tr>`;
+        }).join('');
+      } catch {
+        tbody.innerHTML = `<tr><td colspan="4" class="t-caption" style="font-family:var(--font-mono);padding:var(--space-md) 0;">[ FAILED TO LOAD ]</td></tr>`;
+        setKpi('kpi-unresolved', '<span class="t-caption" style="font-size:11px;">—</span>');
+      }
+    }
+
+    /* ---- Load Active Users ---- */
+    async function loadUsers() {
+      try {
+        const data = await apiFetch('/auth/users?active=true');
+        setKpi('kpi-users', data?.data?.length ?? data?.total ?? '—');
+      } catch {
+        setKpi('kpi-users', '—');
+      }
+    }
+
+    /* ---- System Status ---- */
+    async function loadSystemStatus() {
+      const list = document.getElementById('sys-status-list');
+      try {
+        const data = await apiFetch('/devices/system-status');
+        const s    = data?.data || {};
+        list.innerHTML =
+          statusRow('Database',      s.db_connected    ? 'Connected'   : 'Disconnected', s.db_connected) +
+          statusRow('Server Uptime', s.uptime           || '—',          null) +
+          statusRow('Sync Service',  s.sync_running     ? 'Running'     : 'Stopped',     s.sync_running) +
+          statusRow('ADMS Push',     s.adms_enabled     ? 'Enabled'     : 'Disabled',    s.adms_enabled) +
+          statusRow('Last Heartbeat', s.last_heartbeat  ? timeAgo(s.last_heartbeat) : '—', null);
+      } catch {
+        /* Graceful fallback: show basic connectivity check */
+        list.innerHTML =
+          statusRow('Database',    'Unknown', null) +
+          statusRow('Sync Service','Unknown', null) +
+          statusRow('ADMS Push',   'Unknown', null);
+      }
+    }
+
+    function initPage(user) {
+      document.getElementById('today-date').textContent = new Date().toLocaleDateString('en-PH', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Manila',
+      });
+      loadDevices();
+      loadUnresolved();
+      loadUsers();
+      loadSystemStatus();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const user = requireRole('it', 'super_admin');
+      if (!user) return;
+      buildShell(user, 'dashboard', 'Dashboard');
+      initPage(user);
+    });
+  </script>
+</body>
+</html>

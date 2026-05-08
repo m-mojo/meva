@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Schedule Grid — MINERVA HRIS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&family=Space+Mono:wght@400;700&family=Doto:wght@100..900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/css/shared.css"/>
+  <style>
+    /* ── Schedule grid ── */
+    .sched-grid-wrap {
+      overflow-x: auto;
+      overflow-y: auto;
+      max-height: calc(100vh - 280px);
+      border-radius: var(--radius-card);
+    }
+    .sched-table {
+      border-collapse: separate;
+      border-spacing: 0;
+      min-width: 100%;
+      font-size: 12px;
+    }
+    .sched-table th,
+    .sched-table td {
+      border-right: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 0;
+      vertical-align: middle;
+    }
+    .sched-table th:last-child,
+    .sched-table td:last-child { border-right: none; }
+    .sched-table thead tr:first-child th { border-top: none; }
+    .sched-table th {
+      background: var(--surface-raised);
+      font-family: var(--font-mono);
+      font-weight: 700;
+      font-size: 10px;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      padding: 8px 10px;
+      white-space: nowrap;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .sched-table th.col-name {
+      left: 0;
+      z-index: 3;
+      min-width: 180px;
+      max-width: 180px;
+    }
+    .sched-table td.col-name {
+      position: sticky;
+      left: 0;
+      background: var(--surface);
+      z-index: 1;
+      min-width: 180px;
+      max-width: 180px;
+      padding: 8px 10px;
+      font-weight: 500;
+      color: var(--text-primary);
+      border-right: 1px solid var(--border-visible);
+    }
+    .sched-table tr:hover td { background: var(--surface-raised); }
+    .sched-table tr:hover td.col-name { background: var(--surface-raised); }
+    .sched-cell {
+      min-width: 90px;
+      max-width: 90px;
+      height: 52px;
+      text-align: center;
+      cursor: default;
+      position: relative;
+      padding: 4px 6px;
+    }
+    .sched-cell.editable { cursor: pointer; }
+    .sched-cell.editable:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+    .sched-cell-inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      gap: 2px;
+    }
+    .cell-time {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-primary);
+      font-weight: 700;
+      line-height: 1.2;
+    }
+    .cell-status {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      padding: 1px 5px;
+      border-radius: var(--radius-sm);
+    }
+    .cell-off      { color: var(--text-disabled); background: var(--border); }
+    .cell-absent   { color: #fff; background: var(--accent); }
+    .cell-on_leave { color: #fff; background: var(--warning); }
+    .cell-dod      { color: #fff; background: var(--text-secondary); }
+    .cell-regot    { color: #fff; background: var(--success); }
+    .cell-changeoff{ color: var(--text-secondary); background: var(--border-visible); }
+    .cell-fvl      { color: #fff; background: var(--warning); }
+    .cell-empty    { color: var(--text-disabled); font-size: 10px; }
+    .sched-table th.holiday-col { color: var(--warning); }
+    .sched-toolbar {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      padding: var(--space-sm) var(--space-md);
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+      background: var(--surface-raised);
+    }
+    .completeness-bar {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+    .completeness-track {
+      width: 80px;
+      height: 4px;
+      background: var(--border-visible);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .completeness-fill {
+      height: 100%;
+      background: var(--success);
+      border-radius: 2px;
+      transition: width .3s;
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+  <nav id="sidebar"></nav>
+  <div id="main">
+    <header id="topbar"></header>
+    <main id="page-content">
+
+      <!-- View-only banner -->
+      <div class="view-only-banner hidden" id="view-only-banner">
+        VIEW ONLY — You do not have edit access to the Schedule Grid
+      </div>
+
+      <!-- Page Header -->
+      <div class="page-header mb-md">
+        <div>
+          <div class="page-title">Schedule Grid</div>
+          <div class="page-subtitle" id="cutoff-label">Loading cutoff…</div>
+        </div>
+      </div>
+
+      <!-- Card wrapping toolbar + grid -->
+      <div class="card">
+        <!-- Toolbar -->
+        <div class="sched-toolbar">
+          <select class="filter-select" id="sel-cutoff" style="min-width:200px;">
+            <option value="">Loading cutoffs…</option>
+          </select>
+          <select class="filter-select" id="sel-subdept" style="min-width:180px;">
+            <option value="">Select sub-dept…</option>
+          </select>
+          <div class="filter-spacer"></div>
+          <div class="completeness-bar" id="completeness-bar" style="display:none;">
+            <div class="completeness-track"><div class="completeness-fill" id="completeness-fill" style="width:0%"></div></div>
+            <span id="completeness-label">0 / 0 days</span>
+          </div>
+          <div id="toolbar-actions" class="hidden" style="display:flex;gap:var(--space-sm);">
+            <button class="btn btn-ghost btn-sm" id="btn-undo" disabled title="Undo (Ctrl+Z)">Undo</button>
+            <button class="btn btn-secondary btn-sm" id="btn-submit">Submit for Review</button>
+            <button class="btn btn-primary btn-sm" id="btn-save">Save</button>
+          </div>
+        </div>
+
+        <!-- Grid area -->
+        <div class="card-body" style="padding:0;">
+          <div class="sched-grid-wrap" id="sched-grid-wrap">
+            <div id="sched-loading" style="padding:var(--space-xl);text-align:center;color:var(--text-disabled);">
+              Select a cutoff and sub-department to load the schedule.
+            </div>
+            <table class="sched-table hidden" id="sched-table">
+              <thead id="sched-thead"></thead>
+              <tbody id="sched-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- ── Cell Edit Modal ───────────────────────────────────────────── -->
+<div class="modal-overlay" id="modal-cell">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-cell-title">Edit Cell</div>
+      <button class="modal-close" onclick="closeModal('modal-cell')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="cell-employee-id"/>
+      <input type="hidden" id="cell-date"/>
+      <div class="form-group mb-md">
+        <label class="form-label">Employee</label>
+        <div class="form-input" style="cursor:default;background:var(--surface-raised);color:var(--text-secondary);" id="cell-emp-name">—</div>
+      </div>
+      <div class="form-group mb-md">
+        <label class="form-label">Date</label>
+        <div class="form-input" style="cursor:default;background:var(--surface-raised);color:var(--text-secondary);" id="cell-date-display">—</div>
+      </div>
+      <div class="form-group mb-md">
+        <label class="form-label">Shift</label>
+        <select class="form-select" id="cell-shift">
+          <option value="">— No shift —</option>
+        </select>
+      </div>
+      <div class="form-group mb-md">
+        <label class="form-label">Status</label>
+        <select class="form-select" id="cell-status">
+          <option value="">— Regular (no override) —</option>
+          <option value="off">OFF (Rest Day)</option>
+          <option value="absent">Absent</option>
+          <option value="dod">Day-Off with Duty (DOD)</option>
+          <option value="regot">Regular OT</option>
+          <option value="changeoff">Change Off</option>
+          <option value="fvl">FVL (Forced Vacation Leave)</option>
+          <option value="absent_with_notice">Absent with Notice</option>
+        </select>
+      </div>
+      <div class="form-group" style="display:flex;align-items:center;gap:var(--space-sm);">
+        <input type="checkbox" id="cell-has-break" style="width:16px;height:16px;"/>
+        <label class="form-label" for="cell-has-break" style="margin-bottom:0;cursor:pointer;">Has Break</label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-cell')">Cancel</button>
+      <button class="btn btn-primary" id="btn-save-cell">Save Cell</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Submit for Review Modal ────────────────────────────────────── -->
+<div class="modal-overlay" id="modal-submit">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-header">
+      <div class="modal-title">Submit for Review</div>
+      <button class="modal-close" onclick="closeModal('modal-submit')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p class="t-secondary">Submit this schedule to the Operations Head for sign-off before HR can publish it.</p>
+      <p class="t-secondary mb-md">Cutoff: <strong id="submit-cutoff-label">—</strong></p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-submit')">Cancel</button>
+      <button class="btn btn-primary" id="btn-confirm-submit">Submit</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/config.js"></script>
+<script src="/js/auth.js"></script>
+<script>
+/* ============================================================
+   coord_schedule.html — Schedule Grid
+   ============================================================ */
+
+let currentUser = null;
+let canEdit     = false;
+
+let cutoffs     = [];
+let subdepts    = [];
+let shifts      = [];
+let gridData    = [];   /* { employee_id, employee_name, cells: { [date]: cellData } } */
+let holidays    = {};   /* { date_iso: holiday_name } */
+let dateColumns = [];   /* array of date ISO strings */
+
+let selectedCutoffId  = null;
+let selectedSubdeptId = null;
+let activeCellKey     = null; /* "employeeId_date" */
+
+/* undo stack */
+const undoStack = [];
+const UNDO_LIMIT = 50;
+let pendingChanges = {}; /* cellKey -> cellData delta */
+
+/* ── Init ── */
+document.addEventListener('DOMContentLoaded', () => {
+  currentUser = requireRole('super_admin', 'hr', 'coord', 'admin');
+  if (!currentUser) return;
+  buildShell(currentUser, 'coord_schedule', 'Schedule Grid');
+  initPage(currentUser);
+});
+
+async function initPage(user) {
+  canEdit = ['hr', 'coord'].includes(user.role);
+
+  if (!canEdit) {
+    document.getElementById('view-only-banner').classList.remove('hidden');
+  } else {
+    document.getElementById('toolbar-actions').classList.remove('hidden');
+    document.getElementById('toolbar-actions').style.display = 'flex';
+  }
+
+  /* wire toolbar */
+  document.getElementById('sel-cutoff').addEventListener('change', onCutoffChange);
+  document.getElementById('sel-subdept').addEventListener('change', onSubdeptChange);
+  document.getElementById('btn-save').addEventListener('click', handleSave);
+  document.getElementById('btn-submit').addEventListener('click', () => {
+    document.getElementById('submit-cutoff-label').textContent =
+      document.getElementById('sel-cutoff').selectedOptions[0]?.text || '—';
+    openModal('modal-submit');
+  });
+  document.getElementById('btn-confirm-submit').addEventListener('click', handleSubmit);
+  document.getElementById('btn-undo').addEventListener('click', handleUndo);
+  document.getElementById('btn-save-cell').addEventListener('click', handleSaveCell);
+
+  /* keyboard undo */
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); handleUndo(); }
+  });
+
+  await loadCutoffs();
+  await loadShifts();
+}
+
+/* ── Cutoffs ── */
+async function loadCutoffs() {
+  try {
+    const res = await apiFetch('/schedule/cutoffs');
+    cutoffs = res.data || [];
+    const sel = document.getElementById('sel-cutoff');
+    sel.innerHTML = '<option value="">Select cutoff…</option>';
+    cutoffs.forEach(c => {
+      sel.insertAdjacentHTML('beforeend', `<option value="${c.cutoff_id}">${c.label || c.cutoff_id}</option>`);
+    });
+    /* default to current */
+    if (cutoffs.length) {
+      sel.value = cutoffs[0].cutoff_id;
+      await onCutoffChange();
+    }
+  } catch (err) {
+    showToast('Failed to load cutoffs: ' + err.message, 'error');
+  }
+}
+
+async function onCutoffChange() {
+  const sel = document.getElementById('sel-cutoff');
+  selectedCutoffId = sel.value || null;
+  if (!selectedCutoffId) return;
+
+  const co = cutoffs.find(c => String(c.cutoff_id) === String(selectedCutoffId));
+  document.getElementById('cutoff-label').textContent = co ? (co.label || selectedCutoffId) : selectedCutoffId;
+
+  /* load subdepts for this company */
+  await loadSubdepts();
+
+  /* clear grid */
+  clearGrid();
+}
+
+async function loadSubdepts() {
+  try {
+    const companyId = currentUser.company_id || '';
+    const res = await apiFetch(`/departments/subdepts?company_id=${companyId}`);
+    subdepts = res.data || [];
+    const sel = document.getElementById('sel-subdept');
+    sel.innerHTML = '<option value="">Select sub-dept…</option>';
+    subdepts.forEach(s => {
+      sel.insertAdjacentHTML('beforeend', `<option value="${s.subdept_id}">${s.subdept_name}</option>`);
+    });
+    selectedSubdeptId = null;
+  } catch (err) {
+    showToast('Failed to load sub-departments.', 'error');
+  }
+}
+
+async function onSubdeptChange() {
+  const sel = document.getElementById('sel-subdept');
+  selectedSubdeptId = sel.value || null;
+  if (!selectedSubdeptId || !selectedCutoffId) return;
+  await loadGrid();
+}
+
+/* ── Shifts ── */
+async function loadShifts() {
+  try {
+    const res = await apiFetch('/schedule/shifts');
+    shifts = res.data || [];
+    const shiftSel = document.getElementById('cell-shift');
+    shiftSel.innerHTML = '<option value="">— No shift —</option>';
+    shifts.forEach(s => {
+      const label = `${s.shift_name} (${s.time_in}–${s.time_out})`;
+      shiftSel.insertAdjacentHTML('beforeend', `<option value="${s.shift_id}">${label}</option>`);
+    });
+  } catch (err) {
+    console.warn('Shifts load error:', err);
+  }
+}
+
+/* ── Grid Load ── */
+async function loadGrid() {
+  const loading = document.getElementById('sched-loading');
+  const table   = document.getElementById('sched-table');
+
+  loading.style.display = 'block';
+  loading.textContent   = 'Loading schedule…';
+  table.classList.add('hidden');
+  pendingChanges = {};
+  updateUndoBtn();
+
+  try {
+    const [gridRes, holRes] = await Promise.all([
+      apiFetch(`/schedule/${selectedCutoffId}/${selectedSubdeptId}`),
+      apiFetch(`/schedule/holidays?cutoff_id=${selectedCutoffId}`).catch(() => ({ data: [] })),
+    ]);
+
+    gridData    = gridRes.data?.employees || [];
+    dateColumns = gridRes.data?.dates     || [];
+    holidays    = {};
+    (holRes.data || []).forEach(h => { holidays[h.holiday_date?.split('T')[0]] = h.holiday_name; });
+
+    renderGrid();
+    loading.style.display = 'none';
+    table.classList.remove('hidden');
+    updateCompleteness();
+  } catch (err) {
+    loading.textContent = 'Failed to load schedule: ' + err.message;
+    showToast('Failed to load schedule: ' + err.message, 'error');
+  }
+}
+
+function clearGrid() {
+  const table = document.getElementById('sched-table');
+  table.classList.add('hidden');
+  document.getElementById('sched-loading').style.display = 'block';
+  document.getElementById('sched-loading').textContent = 'Select a sub-department to load the schedule.';
+  document.getElementById('completeness-bar').style.display = 'none';
+  gridData = [];
+  dateColumns = [];
+  pendingChanges = {};
+  updateUndoBtn();
+}
+
+/* ── Render ── */
+function renderGrid() {
+  const thead = document.getElementById('sched-thead');
+  const tbody = document.getElementById('sched-tbody');
+
+  /* header */
+  let hdr = '<tr><th class="col-name">Employee</th>';
+  dateColumns.forEach(d => {
+    const dayNum  = new Date(d + 'T00:00:00').getDate();
+    const dayName = new Date(d + 'T00:00:00').toLocaleDateString('en-PH', { weekday: 'short' });
+    const isHol   = !!holidays[d];
+    const holTip  = isHol ? ` title="${holidays[d]}"` : '';
+    hdr += `<th class="${isHol ? 'holiday-col' : ''}"${holTip}>${dayNum}<br><span style="font-weight:400;">${dayName}${isHol ? ' ★' : ''}</span></th>`;
+  });
+  hdr += '</tr>';
+  thead.innerHTML = hdr;
+
+  /* rows */
+  tbody.innerHTML = gridData.map(emp => {
+    let row = `<tr><td class="col-name">${formatEmployeeName(emp)}</td>`;
+    dateColumns.forEach(d => {
+      const key     = `${emp.employee_id}_${d}`;
+      const cell    = (pendingChanges[key] !== undefined ? pendingChanges[key] : null)
+                   || emp.cells?.[d]
+                   || null;
+      row += `<td class="sched-cell${canEdit ? ' editable' : ''}"
+                  onclick="${canEdit ? `openCellModal(${emp.employee_id},'${d}')` : ''}"
+                  data-key="${key}">
+        ${renderCellInner(cell)}
+      </td>`;
+    });
+    row += '</tr>';
+    return row;
+  }).join('');
+}
+
+function renderCellInner(cell) {
+  if (!cell) return `<div class="sched-cell-inner"><span class="cell-empty">—</span></div>`;
+
+  const status = cell.sched_type;
+  if (status && status !== 'null') {
+    const labels = { off: 'OFF', absent: 'ABS', on_leave: 'LEAVE', dod: 'DOD',
+                     regot: 'R-OT', changeoff: 'C/OFF', fvl: 'FVL', absent_with_notice: 'ABS*' };
+    return `<div class="sched-cell-inner">
+      <span class="cell-status cell-${status}">${labels[status] || status.toUpperCase()}</span>
+    </div>`;
+  }
+
+  if (cell.time_in && cell.time_out) {
+    const timeStr = `${cell.time_in}–${cell.time_out}`;
+    return `<div class="sched-cell-inner">
+      <span class="cell-time">${timeStr}</span>
+      ${cell.crosses_midnight ? '<span style="font-size:9px;color:var(--text-disabled);">+1</span>' : ''}
+    </div>`;
+  }
+
+  return `<div class="sched-cell-inner"><span class="cell-empty">—</span></div>`;
+}
+
+/* ── Cell Modal ── */
+function openCellModal(employeeId, date) {
+  if (!canEdit) return;
+
+  const emp  = gridData.find(e => e.employee_id === employeeId);
+  const key  = `${employeeId}_${date}`;
+  const cell = (pendingChanges[key] !== undefined ? pendingChanges[key] : null)
+             || emp?.cells?.[date]
+             || {};
+
+  activeCellKey = key;
+  document.getElementById('cell-employee-id').value  = employeeId;
+  document.getElementById('cell-date').value         = date;
+  document.getElementById('cell-emp-name').textContent = formatEmployeeName(emp || {});
+  document.getElementById('cell-date-display').textContent = fmtDate(date + 'T00:00:00');
+  document.getElementById('cell-shift').value    = cell.shift_id    || '';
+  document.getElementById('cell-status').value   = cell.sched_type  || '';
+  document.getElementById('cell-has-break').checked = !!cell.has_break;
+
+  openModal('modal-cell');
+}
+
+function handleSaveCell() {
+  if (!activeCellKey) return;
+  const shiftId  = document.getElementById('cell-shift').value   || null;
+  const status   = document.getElementById('cell-status').value  || null;
+  const hasBreak = document.getElementById('cell-has-break').checked;
+
+  /* find shift times */
+  const shift = shifts.find(s => String(s.shift_id) === String(shiftId));
+  const cellData = {
+    shift_id:        shiftId ? Number(shiftId) : null,
+    sched_type:      status,
+    has_break:       hasBreak,
+    time_in:         shift?.time_in  || null,
+    time_out:        shift?.time_out || null,
+    crosses_midnight: shift?.crosses_midnight || false,
+  };
+
+  /* push to undo stack */
+  const [empId, date] = activeCellKey.split('_');
+  const emp = gridData.find(e => String(e.employee_id) === empId);
+  const prev = pendingChanges[activeCellKey] !== undefined
+    ? pendingChanges[activeCellKey]
+    : (emp?.cells?.[date] || null);
+  undoStack.push({ key: activeCellKey, prev });
+  if (undoStack.length > UNDO_LIMIT) undoStack.shift();
+
+  pendingChanges[activeCellKey] = cellData;
+  updateCellDOM(activeCellKey, cellData);
+  updateUndoBtn();
+  updateCompleteness();
+  closeModal('modal-cell');
+  activeCellKey = null;
+}
+
+function updateCellDOM(key, cellData) {
+  const td = document.querySelector(`[data-key="${key}"]`);
+  if (td) td.innerHTML = renderCellInner(cellData);
+}
+
+/* ── Undo ── */
+function handleUndo() {
+  if (!undoStack.length) return;
+  const { key, prev } = undoStack.pop();
+  pendingChanges[key] = prev;
+  const [empId, date] = key.split('_');
+  const emp = gridData.find(e => String(e.employee_id) === empId);
+  const cell = prev !== null ? prev : (emp?.cells?.[date] || null);
+  updateCellDOM(key, cell);
+  updateUndoBtn();
+  updateCompleteness();
+}
+
+function updateUndoBtn() {
+  document.getElementById('btn-undo').disabled = undoStack.length === 0;
+}
+
+/* ── Completeness ── */
+function updateCompleteness() {
+  const bar = document.getElementById('completeness-bar');
+  if (!gridData.length || !dateColumns.length) { bar.style.display = 'none'; return; }
+
+  let filled = 0, total = 0;
+  gridData.forEach(emp => {
+    dateColumns.forEach(d => {
+      total++;
+      const key  = `${emp.employee_id}_${d}`;
+      const cell = pendingChanges[key] !== undefined ? pendingChanges[key] : (emp.cells?.[d] || null);
+      if (cell && (cell.shift_id || cell.sched_type)) filled++;
+    });
+  });
+
+  bar.style.display = 'flex';
+  const pct = total ? Math.round((filled / total) * 100) : 0;
+  document.getElementById('completeness-fill').style.width = pct + '%';
+  document.getElementById('completeness-label').textContent = `${filled} / ${total} cells`;
+}
+
+/* ── Save ── */
+async function handleSave() {
+  if (!Object.keys(pendingChanges).length) {
+    showToast('No changes to save.', 'info');
+    return;
+  }
+
+  const btn = document.getElementById('btn-save');
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+
+  try {
+    const cells = Object.entries(pendingChanges).map(([key, data]) => {
+      const [employeeId, date] = key.split('_');
+      return { employee_id: Number(employeeId), date, cutoff_id: selectedCutoffId,
+               subdept_id: selectedSubdeptId, ...data };
+    });
+
+    await apiFetch('/schedule/cells', {
+      method: 'POST',
+      body: JSON.stringify({ cells }),
+    });
+
+    /* merge into gridData */
+    cells.forEach(c => {
+      const emp = gridData.find(e => e.employee_id === c.employee_id);
+      if (emp) {
+        if (!emp.cells) emp.cells = {};
+        emp.cells[c.date] = c;
+      }
+    });
+    pendingChanges = {};
+    undoStack.length = 0;
+    updateUndoBtn();
+    showToast('Schedule saved.', 'success');
+  } catch (err) {
+    showToast('Save failed: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Save';
+  }
+}
+
+/* ── Submit ── */
+async function handleSubmit() {
+  const btn = document.getElementById('btn-confirm-submit');
+  btn.disabled = true;
+  btn.textContent = 'Submitting…';
+
+  try {
+    await apiFetch(`/schedule/submit`, {
+      method: 'POST',
+      body: JSON.stringify({ cutoff_id: selectedCutoffId, subdept_id: selectedSubdeptId }),
+    });
+    showToast('Schedule submitted for Operations Head review.', 'success');
+    closeModal('modal-submit');
+  } catch (err) {
+    showToast('Submit failed: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Submit';
+  }
+}
+</script>
+</body>
+</html>

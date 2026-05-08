@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Timekeeping — MINERVA HRIS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&family=Space+Mono:wght@400;700&family=Doto:wght@100..900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/css/shared.css"/>
+  <style>
+    /* ── Anomaly drawer ── */
+    .anomaly-drawer {
+      position: fixed;
+      top: 0;
+      right: -440px;
+      width: 420px;
+      height: 100vh;
+      background: var(--surface);
+      border-left: 1px solid var(--border-visible);
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      transition: right .25s ease;
+      box-shadow: -4px 0 24px rgba(0,0,0,.12);
+    }
+    .anomaly-drawer.open { right: 0; }
+    .drawer-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--space-md) var(--space-lg);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .drawer-title {
+      font-weight: 700;
+      font-size: 15px;
+      color: var(--text-display);
+    }
+    .drawer-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: var(--space-lg);
+    }
+    .drawer-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.3);
+      z-index: 199;
+      display: none;
+    }
+    .drawer-overlay.open { display: block; }
+    .anomaly-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      margin-right: 4px;
+      vertical-align: middle;
+    }
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: var(--space-sm) 0;
+      border-bottom: 1px solid var(--border);
+      gap: var(--space-md);
+    }
+    .detail-row:last-child { border-bottom: none; }
+    .detail-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      color: var(--text-disabled);
+      flex-shrink: 0;
+      min-width: 120px;
+    }
+    .detail-value {
+      font-size: 13px;
+      color: var(--text-primary);
+      text-align: right;
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+  <nav id="sidebar"></nav>
+  <div id="main">
+    <header id="topbar"></header>
+    <main id="page-content">
+
+      <!-- View-only banner -->
+      <div class="view-only-banner hidden" id="view-only-banner">
+        VIEW ONLY — Contact HR to compute, lock, or override timekeeping records
+      </div>
+
+      <!-- Page Header -->
+      <div class="page-header mb-lg">
+        <div>
+          <div class="page-title">Timekeeping</div>
+          <div class="page-subtitle" id="cutoff-subtitle">Select a cutoff to load records</div>
+        </div>
+        <div class="page-actions" id="page-actions">
+          <!-- populated after role check -->
+        </div>
+      </div>
+
+      <!-- KPI Row (hr / super_admin only) -->
+      <div class="grid-3 mb-lg hidden" id="kpi-row">
+        <div class="kpi-card">
+          <div class="kpi-label">Classified</div>
+          <div class="kpi-value" id="kpi-classified">
+            <span class="skeleton" style="width:48px;height:32px;display:inline-block;"></span>
+          </div>
+          <div class="kpi-meta t-caption">Records fully computed</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Anomalies</div>
+          <div class="kpi-value t-accent" id="kpi-anomalies">
+            <span class="skeleton" style="width:48px;height:32px;display:inline-block;"></span>
+          </div>
+          <div class="kpi-meta t-caption">Flagged — need HR review</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Manual Review</div>
+          <div class="kpi-value" id="kpi-manual">
+            <span class="skeleton" style="width:48px;height:32px;display:inline-block;"></span>
+          </div>
+          <div class="kpi-meta t-caption">Pending HR decision</div>
+        </div>
+      </div>
+
+      <!-- Filter Bar -->
+      <div class="filter-bar mb-md">
+        <select class="filter-select" id="filter-cutoff" style="min-width:200px;">
+          <option value="">Loading cutoffs…</option>
+        </select>
+        <select class="filter-select" id="filter-company">
+          <option value="">All Companies</option>
+          <option value="1">UTH</option>
+          <option value="2">SSH</option>
+        </select>
+        <input type="text" class="filter-input" id="filter-emp" placeholder="Search employee…" style="min-width:220px;"/>
+        <select class="filter-select" id="filter-status">
+          <option value="">All Status</option>
+          <option value="classified">Classified</option>
+          <option value="unclassified">Unclassified</option>
+          <option value="manual_review">Manual Review</option>
+          <option value="anomaly">Anomaly Only</option>
+        </select>
+        <div class="filter-spacer"></div>
+        <span class="t-caption" id="result-count" style="white-space:nowrap;">— records</span>
+      </div>
+
+      <!-- Table Card -->
+      <div class="card mb-md">
+        <div class="card-body" style="padding:0;">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Employee</th>
+                  <th>Date</th>
+                  <th>Sched In</th>
+                  <th>Sched Out</th>
+                  <th>Punch In</th>
+                  <th>Punch Out</th>
+                  <th style="text-align:right;">Hours</th>
+                  <th style="text-align:right;">Late</th>
+                  <th style="text-align:right;">Undertime</th>
+                  <th>Status</th>
+                  <th>Flags</th>
+                  <th id="col-actions" style="width:160px;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="tk-tbody">
+                <tr class="skeleton-row"><td colspan="12"><div class="skeleton skeleton-text"></div></td></tr>
+                <tr class="skeleton-row"><td colspan="12"><div class="skeleton skeleton-text"></div></td></tr>
+                <tr class="skeleton-row"><td colspan="12"><div class="skeleton skeleton-text"></div></td></tr>
+                <tr class="skeleton-row"><td colspan="12"><div class="skeleton skeleton-text"></div></td></tr>
+                <tr class="skeleton-row"><td colspan="12"><div class="skeleton skeleton-text"></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination" id="pagination" style="display:none;">
+        <span class="pagination-info" id="pagination-info"></span>
+        <div id="page-btns" style="display:flex;gap:4px;"></div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- ── Anomaly Drawer ─────────────────────────────────────────────── -->
+<div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawer()"></div>
+<div class="anomaly-drawer" id="anomaly-drawer">
+  <div class="drawer-header">
+    <div class="drawer-title">
+      <span class="anomaly-dot"></span>
+      Anomaly Details
+    </div>
+    <button class="btn btn-ghost btn-sm" onclick="closeDrawer()">Close</button>
+  </div>
+  <div class="drawer-body" id="drawer-body">
+    <div class="t-secondary">Select a flagged record to view anomaly details.</div>
+  </div>
+</div>
+
+<!-- ── Compute Confirm Modal ──────────────────────────────────────── -->
+<div class="modal-overlay" id="modal-compute">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-header">
+      <div class="modal-title">Compute Cutoff</div>
+      <button class="modal-close" onclick="closeModal('modal-compute')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p class="t-secondary mb-md">
+        This will compute timekeeping for all employees in the selected cutoff.
+        Existing unclassified records will be processed. Locked records will not be touched.
+      </p>
+      <p class="t-secondary">
+        Cutoff: <strong id="compute-cutoff-label">—</strong>
+      </p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-compute')">Cancel</button>
+      <button class="btn btn-primary" id="btn-confirm-compute">Compute</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/config.js"></script>
+<script src="/js/auth.js"></script>
+<script>
+/* ============================================================
+   hr_timekeeping.html — Timekeeping
+   ============================================================ */
+
+let currentUser = null;
+let canWrite    = false;
+
+let allRecords      = [];
+let filteredRecords = [];
+let cutoffs         = [];
+
+const PAGE_SIZE = 25;
+let currentPage = 1;
+const filters = { cutoff: '', company: '', emp: '', status: '' };
+
+/* ── Init ── */
+document.addEventListener('DOMContentLoaded', () => {
+  currentUser = requireRole('super_admin', 'hr', 'coord', 'it', 'admin');
+  if (!currentUser) return;
+  buildShell(currentUser, 'timekeeping', 'Timekeeping');
+  initPage(currentUser);
+});
+
+async function initPage(user) {
+  canWrite = ['super_admin', 'hr'].includes(user.role);
+
+  /* view-only */
+  if (!canWrite) document.getElementById('view-only-banner').classList.remove('hidden');
+
+  /* KPI row — hr/super_admin only */
+  if (canWrite) document.getElementById('kpi-row').classList.remove('hidden');
+
+  /* action buttons */
+  if (canWrite) {
+    document.getElementById('page-actions').innerHTML = `
+      <button class="btn btn-secondary" id="btn-export">Export</button>
+      <button class="btn btn-primary"   id="btn-compute">Compute Cutoff</button>
+    `;
+    document.getElementById('btn-compute').addEventListener('click', openComputeModal);
+    document.getElementById('btn-export').addEventListener('click', handleExport);
+    document.getElementById('btn-confirm-compute').addEventListener('click', handleCompute);
+  }
+
+  /* filters */
+  document.getElementById('filter-cutoff').addEventListener('change',  e => { filters.cutoff  = e.target.value; loadTimekeeping(); });
+  document.getElementById('filter-company').addEventListener('change', e => { filters.company  = e.target.value; applyFilter(); });
+  document.getElementById('filter-emp').addEventListener('input',      e => { filters.emp      = e.target.value; applyFilter(); });
+  document.getElementById('filter-status').addEventListener('change',  e => { filters.status   = e.target.value; applyFilter(); });
+
+  await loadCutoffs();
+}
+
+/* ── Cutoffs ── */
+async function loadCutoffs() {
+  try {
+    const res = await apiFetch('/schedule/cutoffs');
+    cutoffs = res.data || [];
+    const sel = document.getElementById('filter-cutoff');
+    sel.innerHTML = '<option value="">Select cutoff…</option>';
+    cutoffs.forEach(c => {
+      sel.insertAdjacentHTML('beforeend', `<option value="${c.cutoff_id}">${c.label || c.cutoff_id}</option>`);
+    });
+    if (cutoffs.length) {
+      sel.value = cutoffs[0].cutoff_id;
+      filters.cutoff = cutoffs[0].cutoff_id;
+      await loadTimekeeping();
+    }
+  } catch (err) {
+    showToast('Failed to load cutoffs.', 'error');
+  }
+}
+
+/* ── Load Records ── */
+async function loadTimekeeping() {
+  if (!filters.cutoff) return;
+
+  const co = cutoffs.find(c => String(c.cutoff_id) === String(filters.cutoff));
+  document.getElementById('cutoff-subtitle').textContent = co ? (co.label || filters.cutoff) : filters.cutoff;
+
+  const tbody = document.getElementById('tk-tbody');
+  tbody.innerHTML = `<tr class="skeleton-row"><td colspan="12"><div class="skeleton skeleton-text"></div></td></tr>`.repeat(5);
+
+  try {
+    const params = new URLSearchParams();
+    if (filters.company) params.set('company_id', filters.company);
+    const res = await apiFetch(`/timekeeping/${filters.cutoff}?${params}`);
+    allRecords = res.data || [];
+
+    if (canWrite) updateKPIs();
+    applyFilter();
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="12" class="table-empty">Failed to load: ${err.message}</td></tr>`;
+    showToast('Failed to load timekeeping records.', 'error');
+  }
+}
+
+/* ── KPIs ── */
+function updateKPIs() {
+  const classified = allRecords.filter(r => r.classification_status === 'classified').length;
+  const anomalies  = allRecords.filter(r => r.anomaly_flag).length;
+  const manual     = allRecords.filter(r => r.classification_status === 'manual_review').length;
+  document.getElementById('kpi-classified').textContent = classified;
+  document.getElementById('kpi-anomalies').textContent  = anomalies;
+  document.getElementById('kpi-manual').textContent     = manual;
+}
+
+/* ── Filter ── */
+function applyFilter() {
+  const empSearch = filters.emp.toLowerCase();
+  filteredRecords = allRecords.filter(r => {
+    const name = formatEmployeeName(r).toLowerCase();
+    if (empSearch && !name.includes(empSearch)) return false;
+    if (filters.company && String(r.company_id) !== filters.company) return false;
+    if (filters.status) {
+      if (filters.status === 'anomaly' && !r.anomaly_flag) return false;
+      if (filters.status !== 'anomaly' && r.classification_status !== filters.status) return false;
+    }
+    return true;
+  });
+  currentPage = 1;
+  document.getElementById('result-count').textContent = `${filteredRecords.length} record${filteredRecords.length !== 1 ? 's' : ''}`;
+  renderTable();
+  renderPagination();
+}
+
+/* ── Render Table ── */
+function renderTable() {
+  const tbody = document.getElementById('tk-tbody');
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const rows  = filteredRecords.slice(start, start + PAGE_SIZE);
+
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="12" class="table-empty">No timekeeping records found.</td></tr>`;
+    return;
+  }
+
+  const statusTag = s => {
+    if (s === 'classified')    return `<span class="tag tag-active">Classified</span>`;
+    if (s === 'manual_review') return `<span class="tag tag-warning">Manual Review</span>`;
+    return `<span class="tag tag-neutral">Unclassified</span>`;
+  };
+
+  tbody.innerHTML = rows.map(r => {
+    const anomalyDot = r.anomaly_flag
+      ? `<span class="anomaly-dot" title="Anomaly flagged"></span>`
+      : '';
+    const lockedTag = r.is_manually_locked
+      ? `<span class="tag tag-neutral" style="font-size:9px;">LOCKED</span>`
+      : '';
+
+    let actionBtns = '';
+    if (canWrite) {
+      const lockBtn = r.is_manually_locked
+        ? `<button class="btn btn-ghost btn-xs" onclick="handleUnlock(${r.tk_id})">Unlock</button>`
+        : `<button class="btn btn-xs btn-secondary" onclick="handleLock(${r.tk_id})">Lock</button>`;
+      actionBtns = `
+        ${lockBtn}
+        <button class="btn btn-ghost btn-xs" onclick="handleRecompute(${r.tk_id})">Recompute</button>
+      `;
+    }
+    if (r.anomaly_flag) {
+      actionBtns += `<button class="btn btn-ghost btn-xs" onclick="openDrawer(${r.tk_id})">Details</button>`;
+    }
+
+    return `<tr>
+      <td style="font-weight:500;">${formatEmployeeName(r)}</td>
+      <td class="t-caption">${fmtDate(r.shift_date)}</td>
+      <td style="font-family:var(--font-mono);font-size:12px;">${r.scheduled_time_in  || '—'}</td>
+      <td style="font-family:var(--font-mono);font-size:12px;">${r.scheduled_time_out || '—'}</td>
+      <td style="font-family:var(--font-mono);font-size:12px;${!r.punch_in ? 'color:var(--text-disabled);' : ''}">${r.punch_in  ? fmtTime(r.punch_in)  : '—'}</td>
+      <td style="font-family:var(--font-mono);font-size:12px;${!r.punch_out ? 'color:var(--text-disabled);' : ''}">${r.punch_out ? fmtTime(r.punch_out) : '—'}</td>
+      <td style="text-align:right;font-family:var(--font-mono);font-size:12px;">${r.total_hours_day != null ? Number(r.total_hours_day).toFixed(2) : '—'}</td>
+      <td style="text-align:right;font-family:var(--font-mono);font-size:12px;${r.late_minutes > 0 ? 'color:var(--accent);' : ''}">${r.late_minutes > 0 ? r.late_minutes + 'm' : '—'}</td>
+      <td style="text-align:right;font-family:var(--font-mono);font-size:12px;${r.undertime_minutes > 0 ? 'color:var(--warning);' : ''}">${r.undertime_minutes > 0 ? r.undertime_minutes + 'm' : '—'}</td>
+      <td>${statusTag(r.classification_status)}</td>
+      <td style="white-space:nowrap;">${anomalyDot}${lockedTag}</td>
+      <td style="white-space:nowrap;">${actionBtns}</td>
+    </tr>`;
+  }).join('');
+}
+
+/* ── Pagination ── */
+function renderPagination() {
+  const totalPages = Math.ceil(filteredRecords.length / PAGE_SIZE);
+  const pag  = document.getElementById('pagination');
+  const info = document.getElementById('pagination-info');
+  const btns = document.getElementById('page-btns');
+  if (totalPages <= 1) { pag.style.display = 'none'; return; }
+  pag.style.display = 'flex';
+  const start = (currentPage - 1) * PAGE_SIZE + 1;
+  const end   = Math.min(currentPage * PAGE_SIZE, filteredRecords.length);
+  info.textContent = `${start}–${end} of ${filteredRecords.length}`;
+  let html = `<button class="page-btn" onclick="goPage(${currentPage-1})" ${currentPage===1?'disabled':''}>&lsaquo;</button>`;
+  for (let p = 1; p <= totalPages; p++) {
+    if (totalPages > 7 && p > 3 && p < totalPages - 1 && Math.abs(p - currentPage) > 1) {
+      if (p === 4 || p === totalPages - 2) html += `<span style="padding:0 4px;color:var(--text-disabled);">…</span>`;
+      continue;
+    }
+    html += `<button class="page-btn${p===currentPage?' active':''}" onclick="goPage(${p})">${p}</button>`;
+  }
+  html += `<button class="page-btn" onclick="goPage(${currentPage+1})" ${currentPage===totalPages?'disabled':''}>&rsaquo;</button>`;
+  btns.innerHTML = html;
+}
+
+function goPage(p) {
+  const totalPages = Math.ceil(filteredRecords.length / PAGE_SIZE);
+  if (p < 1 || p > totalPages) return;
+  currentPage = p;
+  renderTable();
+  renderPagination();
+}
+
+/* ── Lock / Unlock / Recompute ── */
+async function handleLock(tkId) {
+  try {
+    await apiFetch(`/timekeeping/lock/${tkId}`, { method: 'POST' });
+    const r = allRecords.find(x => x.tk_id === tkId);
+    if (r) r.is_manually_locked = true;
+    renderTable();
+    showToast('Record locked.', 'success');
+  } catch (err) {
+    showToast('Lock failed: ' + err.message, 'error');
+  }
+}
+
+async function handleUnlock(tkId) {
+  try {
+    await apiFetch(`/timekeeping/unlock/${tkId}`, { method: 'POST' });
+    const r = allRecords.find(x => x.tk_id === tkId);
+    if (r) r.is_manually_locked = false;
+    renderTable();
+    showToast('Record unlocked.', 'success');
+  } catch (err) {
+    showToast('Unlock failed: ' + err.message, 'error');
+  }
+}
+
+async function handleRecompute(tkId) {
+  try {
+    await apiFetch('/timekeeping/recompute', {
+      method: 'POST',
+      body: JSON.stringify({ tk_id: tkId }),
+    });
+    showToast('Recompute queued.', 'success');
+    await loadTimekeeping();
+  } catch (err) {
+    showToast('Recompute failed: ' + err.message, 'error');
+  }
+}
+
+/* ── Compute Modal ── */
+function openComputeModal() {
+  if (!filters.cutoff) { showToast('Select a cutoff first.', 'error'); return; }
+  const co = cutoffs.find(c => String(c.cutoff_id) === String(filters.cutoff));
+  document.getElementById('compute-cutoff-label').textContent = co ? (co.label || filters.cutoff) : filters.cutoff;
+  openModal('modal-compute');
+}
+
+async function handleCompute() {
+  const btn = document.getElementById('btn-confirm-compute');
+  btn.disabled = true;
+  btn.textContent = 'Computing…';
+
+  try {
+    await apiFetch(`/timekeeping/compute/${filters.cutoff}`, { method: 'POST' });
+    showToast('Computation started. Records will update shortly.', 'success');
+    closeModal('modal-compute');
+    setTimeout(() => loadTimekeeping(), 2000);
+  } catch (err) {
+    showToast('Compute failed: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Compute';
+  }
+}
+
+/* ── Anomaly Drawer ── */
+function openDrawer(tkId) {
+  const r = allRecords.find(x => x.tk_id === tkId);
+  if (!r) return;
+
+  const body = document.getElementById('drawer-body');
+
+  const field = (label, value) => `
+    <div class="detail-row">
+      <div class="detail-label">${label}</div>
+      <div class="detail-value">${value || '—'}</div>
+    </div>`;
+
+  const yesNo = v => v ? `<span class="tag tag-error">Yes</span>` : `<span class="tag tag-neutral">No</span>`;
+  const statusTag = s => {
+    if (s === 'classified')    return `<span class="tag tag-active">Classified</span>`;
+    if (s === 'manual_review') return `<span class="tag tag-warning">Manual Review</span>`;
+    return `<span class="tag tag-neutral">Unclassified</span>`;
+  };
+
+  body.innerHTML = `
+    <div class="t-label mb-md">${formatEmployeeName(r)} — ${fmtDate(r.shift_date)}</div>
+
+    <div class="card mb-md">
+      <div class="card-header"><div class="card-title">Punch Details</div></div>
+      <div class="card-body" style="padding:var(--space-sm) var(--space-md);">
+        ${field('Punch In',  r.punch_in  ? fmtDateTime(r.punch_in)  : '—')}
+        ${field('Punch Out', r.punch_out ? fmtDateTime(r.punch_out) : '—')}
+        ${field('Sched In',  r.scheduled_time_in  || '—')}
+        ${field('Sched Out', r.scheduled_time_out || '—')}
+        ${field('Hours',     r.total_hours_day != null ? Number(r.total_hours_day).toFixed(2) + 'h' : '—')}
+      </div>
+    </div>
+
+    <div class="card mb-md">
+      <div class="card-header"><div class="card-title">Anomaly Flags</div></div>
+      <div class="card-body" style="padding:var(--space-sm) var(--space-md);">
+        ${field('Anomaly Flagged',   yesNo(r.anomaly_flag))}
+        ${field('Is Locked',         yesNo(r.is_manually_locked))}
+        ${field('Recompute Needed',  yesNo(r.recompute_needed))}
+        ${field('Classification',    statusTag(r.classification_status))}
+        ${field('Day Scenario',      r.day_scenario || '—')}
+        ${field('OT Approval',       r.ot_approval_status || '—')}
+        ${field('Anomaly Note',      r.anomaly_note || '—')}
+        ${field('Reconcil. Note',    r.reconciliation_note || '—')}
+      </div>
+    </div>
+
+    <div class="card mb-md">
+      <div class="card-header"><div class="card-title">Computed Values</div></div>
+      <div class="card-body" style="padding:var(--space-sm) var(--space-md);">
+        ${field('Late (min)',       r.late_minutes      > 0 ? r.late_minutes      + 'm' : '—')}
+        ${field('Undertime (min)', r.undertime_minutes > 0 ? r.undertime_minutes + 'm' : '—')}
+        ${field('OT Hours',        r.ot_hours          > 0 ? Number(r.ot_hours).toFixed(2) + 'h' : '—')}
+        ${field('Night Diff',      r.nd_hours          > 0 ? Number(r.nd_hours).toFixed(2) + 'h' : '—')}
+      </div>
+    </div>
+
+    ${canWrite ? `
+    <div class="divider mb-md"></div>
+    <div style="display:flex;gap:var(--space-sm);">
+      ${!r.is_manually_locked
+        ? `<button class="btn btn-secondary btn-sm" onclick="handleLock(${r.tk_id});closeDrawer();">Lock Record</button>`
+        : `<button class="btn btn-ghost btn-sm" onclick="handleUnlock(${r.tk_id});closeDrawer();">Unlock Record</button>`}
+      <button class="btn btn-ghost btn-sm" onclick="handleRecompute(${r.tk_id});closeDrawer();">Recompute</button>
+    </div>` : ''}
+  `;
+
+  document.getElementById('anomaly-drawer').classList.add('open');
+  document.getElementById('drawer-overlay').classList.add('open');
+}
+
+function closeDrawer() {
+  document.getElementById('anomaly-drawer').classList.remove('open');
+  document.getElementById('drawer-overlay').classList.remove('open');
+}
+
+/* ── Export ── */
+function handleExport() {
+  if (!filters.cutoff) { showToast('Select a cutoff first.', 'error'); return; }
+  const token = localStorage.getItem(CONFIG.TOKEN_KEY);
+  const params = new URLSearchParams({ token: token });
+  if (filters.company) params.set('company_id', filters.company);
+  window.open(`${CONFIG.API_BASE}/timekeeping/${filters.cutoff}/export?${params}`, '_blank');
+}
+</script>
+</body>
+</html>

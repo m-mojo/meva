@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Schedule Override — MINERVA HRIS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&family=Space+Mono:wght@400;700&family=Doto:wght@100..900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/css/shared.css"/>
+</head>
+<body>
+<div id="app">
+  <nav id="sidebar"></nav>
+  <div id="main">
+    <header id="topbar"></header>
+    <main id="page-content">
+
+      <!-- Page Header -->
+      <div class="page-header mb-lg">
+        <div>
+          <div class="page-title">Schedule Override</div>
+          <div class="page-subtitle">Post-publish modifications based on approved forms</div>
+        </div>
+      </div>
+
+      <!-- Filter Bar -->
+      <div class="filter-bar mb-md">
+        <select class="filter-select" id="filter-cutoff" style="min-width:200px;">
+          <option value="">Loading cutoffs…</option>
+        </select>
+        <select class="filter-select" id="filter-subdept" style="min-width:180px;">
+          <option value="">All Sub-departments</option>
+        </select>
+        <input type="text" class="filter-input" id="filter-emp" placeholder="Search employee…" style="min-width:220px;"/>
+        <div class="filter-spacer"></div>
+        <button class="btn btn-ghost btn-sm" id="btn-refresh">Refresh</button>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs mb-md">
+        <div class="tab-item active" data-tab="published" id="tab-published">Published Schedule</div>
+        <div class="tab-item" data-tab="log" id="tab-log">Override Log</div>
+      </div>
+
+      <!-- Tab: Published Schedule -->
+      <div id="pane-published" class="tab-pane active">
+        <div class="card">
+          <div class="card-body" style="padding:0;">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Employee</th>
+                    <th>Date</th>
+                    <th>Shift</th>
+                    <th>Status</th>
+                    <th>Override</th>
+                    <th>Last Modified</th>
+                    <th style="width:100px;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="published-tbody">
+                  <tr class="skeleton-row"><td colspan="7"><div class="skeleton skeleton-text"></div></td></tr>
+                  <tr class="skeleton-row"><td colspan="7"><div class="skeleton skeleton-text"></div></td></tr>
+                  <tr class="skeleton-row"><td colspan="7"><div class="skeleton skeleton-text"></div></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="pagination" id="pagination-pub" style="display:none;">
+          <span class="pagination-info" id="pagination-pub-info"></span>
+          <div id="page-btns-pub" style="display:flex;gap:4px;"></div>
+        </div>
+      </div>
+
+      <!-- Tab: Override Log -->
+      <div id="pane-log" class="tab-pane hidden">
+        <div class="card">
+          <div class="card-body" style="padding:0;">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Employee</th>
+                    <th>Old Value</th>
+                    <th>New Value</th>
+                    <th>Modified By</th>
+                    <th>Reason</th>
+                    <th>Timestamp</th>
+                  </tr>
+                </thead>
+                <tbody id="log-tbody">
+                  <tr class="skeleton-row"><td colspan="7"><div class="skeleton skeleton-text"></div></td></tr>
+                  <tr class="skeleton-row"><td colspan="7"><div class="skeleton skeleton-text"></div></td></tr>
+                  <tr class="skeleton-row"><td colspan="7"><div class="skeleton skeleton-text"></div></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- ── Override Modal ────────────────────────────────────────────── -->
+<div class="modal-overlay" id="modal-override">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-header">
+      <div class="modal-title">Override Cell</div>
+      <button class="modal-close" onclick="closeModal('modal-override')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="ov-schedule-id"/>
+      <input type="hidden" id="ov-employee-id"/>
+      <input type="hidden" id="ov-date"/>
+
+      <div class="grid-2" style="gap:var(--space-md);margin-bottom:var(--space-md);">
+        <div class="form-group">
+          <label class="form-label">Employee</label>
+          <div class="form-input" id="ov-emp-name"
+               style="cursor:default;background:var(--surface-raised);color:var(--text-secondary);">—</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date</label>
+          <div class="form-input" id="ov-date-display"
+               style="cursor:default;background:var(--surface-raised);color:var(--text-secondary);">—</div>
+        </div>
+      </div>
+
+      <div class="card mb-md" style="background:var(--surface-raised);">
+        <div class="card-body" style="padding:var(--space-sm) var(--space-md);">
+          <div class="t-label mb-sm">Current Value</div>
+          <div class="grid-2" style="gap:var(--space-sm);">
+            <div>
+              <div class="t-caption" style="color:var(--text-disabled);">Shift</div>
+              <div id="ov-current-shift" style="font-size:13px;">—</div>
+            </div>
+            <div>
+              <div class="t-caption" style="color:var(--text-disabled);">Status</div>
+              <div id="ov-current-status" style="font-size:13px;">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider mb-md"></div>
+
+      <div class="form-group mb-md">
+        <label class="form-label">New Shift</label>
+        <select class="form-select" id="ov-new-shift">
+          <option value="">— Keep current / No shift —</option>
+        </select>
+      </div>
+      <div class="form-group mb-md">
+        <label class="form-label">New Status</label>
+        <select class="form-select" id="ov-new-status">
+          <option value="">— Keep current status —</option>
+          <option value="off">OFF (Rest Day)</option>
+          <option value="absent">Absent</option>
+          <option value="dod">Day-Off with Duty (DOD)</option>
+          <option value="regot">Regular OT</option>
+          <option value="changeoff">Change Off</option>
+          <option value="fvl">FVL (Forced Vacation Leave)</option>
+          <option value="absent_with_notice">Absent with Notice</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Reason <span style="color:var(--accent)">*</span></label>
+        <textarea class="form-textarea" id="ov-reason" rows="3"
+                  placeholder="Required — state the approved form or reason for this override…"></textarea>
+        <div class="form-hint">This will be recorded in the override audit log.</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-override')">Cancel</button>
+      <button class="btn btn-primary" id="btn-save-override">Apply Override</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/config.js"></script>
+<script src="/js/auth.js"></script>
+<script>
+/* ============================================================
+   hr_schedule.html — Schedule Override
+   ============================================================ */
+
+let currentUser = null;
+let scheduleRows = [];
+let filteredRows = [];
+let overrideLog  = [];
+let shifts       = [];
+let cutoffs      = [];
+let subdepts     = [];
+
+const PAGE_SIZE = 25;
+let currentPage = 1;
+const filters   = { cutoff: '', subdept: '', emp: '' };
+
+/* ── Init ── */
+document.addEventListener('DOMContentLoaded', () => {
+  currentUser = requireRole('super_admin', 'hr');
+  if (!currentUser) return;
+  buildShell(currentUser, 'hr_schedule', 'Schedule Override');
+  initPage(currentUser);
+});
+
+async function initPage(user) {
+  /* tabs */
+  document.querySelectorAll('.tab-item').forEach(tab => {
+    tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+  });
+
+  /* filters */
+  document.getElementById('filter-cutoff').addEventListener('change',  e => { filters.cutoff  = e.target.value; loadPublished(); });
+  document.getElementById('filter-subdept').addEventListener('change', e => { filters.subdept = e.target.value; applyFilter(); });
+  document.getElementById('filter-emp').addEventListener('input',      e => { filters.emp     = e.target.value; applyFilter(); });
+  document.getElementById('btn-refresh').addEventListener('click', () => { loadPublished(); loadLog(); });
+
+  document.getElementById('btn-save-override').addEventListener('click', handleSaveOverride);
+
+  await Promise.all([loadCutoffs(), loadShifts()]);
+}
+
+/* ── Tab switch ── */
+function switchTab(tab) {
+  document.querySelectorAll('.tab-item').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  document.getElementById('pane-published').classList.toggle('hidden', tab !== 'published');
+  document.getElementById('pane-log').classList.toggle('hidden', tab !== 'log');
+  document.getElementById('pane-published').classList.toggle('active', tab === 'published');
+  document.getElementById('pane-log').classList.toggle('active', tab === 'log');
+
+  if (tab === 'log') loadLog();
+}
+
+/* ── Cutoffs ── */
+async function loadCutoffs() {
+  try {
+    const res = await apiFetch('/schedule/cutoffs');
+    cutoffs = res.data || [];
+    const sel = document.getElementById('filter-cutoff');
+    sel.innerHTML = '<option value="">Select cutoff…</option>';
+    cutoffs.forEach(c => {
+      sel.insertAdjacentHTML('beforeend', `<option value="${c.cutoff_id}">${c.label || c.cutoff_id}</option>`);
+    });
+    if (cutoffs.length) {
+      sel.value = cutoffs[0].cutoff_id;
+      filters.cutoff = cutoffs[0].cutoff_id;
+      await loadPublished();
+    }
+  } catch (err) {
+    showToast('Failed to load cutoffs.', 'error');
+  }
+}
+
+/* ── Shifts ── */
+async function loadShifts() {
+  try {
+    const res = await apiFetch('/schedule/shifts');
+    shifts = res.data || [];
+    const sel = document.getElementById('ov-new-shift');
+    sel.innerHTML = '<option value="">— Keep current / No shift —</option>';
+    shifts.forEach(s => {
+      const label = `${s.shift_name} (${s.time_in}–${s.time_out})`;
+      sel.insertAdjacentHTML('beforeend', `<option value="${s.shift_id}">${label}</option>`);
+    });
+  } catch (err) {
+    console.warn('Shifts load error:', err);
+  }
+}
+
+/* ── Published Schedule ── */
+async function loadPublished() {
+  if (!filters.cutoff) return;
+  const tbody = document.getElementById('published-tbody');
+  tbody.innerHTML = `<tr class="skeleton-row"><td colspan="7"><div class="skeleton skeleton-text"></div></td></tr>`.repeat(4);
+
+  try {
+    const params = new URLSearchParams({ cutoff_id: filters.cutoff });
+    if (filters.subdept) params.set('subdept_id', filters.subdept);
+    const res = await apiFetch(`/schedule/published?${params}`);
+    scheduleRows = res.data || [];
+    applyFilter();
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="7" class="table-empty">Failed to load: ${err.message}</td></tr>`;
+  }
+}
+
+function applyFilter() {
+  const empSearch = filters.emp.toLowerCase();
+  filteredRows = scheduleRows.filter(r => {
+    const name = formatEmployeeName(r).toLowerCase();
+    if (empSearch && !name.includes(empSearch)) return false;
+    if (filters.subdept && String(r.subdept_id) !== filters.subdept) return false;
+    return true;
+  });
+  currentPage = 1;
+  renderPublished();
+  renderPaginationPub();
+}
+
+function renderPublished() {
+  const tbody = document.getElementById('published-tbody');
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const rows  = filteredRows.slice(start, start + PAGE_SIZE);
+
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="7" class="table-empty">No published schedule rows found.</td></tr>`;
+    return;
+  }
+
+  const statusLabels = { off: 'OFF', absent: 'Absent', on_leave: 'On Leave', dod: 'DOD',
+    regot: 'Reg OT', changeoff: 'Change Off', fvl: 'FVL', absent_with_notice: 'Abs. w/ Notice' };
+
+  tbody.innerHTML = rows.map(r => {
+    const shift  = r.time_in && r.time_out ? `${r.time_in}–${r.time_out}` : (r.shift_name || '—');
+    const status = r.sched_type ? (statusLabels[r.sched_type] || r.sched_type) : '—';
+    const ovTag  = r.is_overridden
+      ? `<span class="tag tag-warning">Overridden</span>`
+      : `<span class="tag tag-neutral">Original</span>`;
+    return `<tr>
+      <td style="font-weight:500;">${formatEmployeeName(r)}</td>
+      <td class="t-caption">${fmtDate(r.sched_date)}</td>
+      <td style="font-family:var(--font-mono);font-size:12px;">${shift}</td>
+      <td>${status}</td>
+      <td>${ovTag}</td>
+      <td class="t-caption">${r.updated_at ? fmtDateTime(r.updated_at) : '—'}</td>
+      <td>
+        <button class="btn btn-ghost btn-sm" onclick="openOverrideModal(${JSON.stringify(r).replace(/"/g,'&quot;')})">
+          Override
+        </button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function renderPaginationPub() {
+  const totalPages = Math.ceil(filteredRows.length / PAGE_SIZE);
+  const pag  = document.getElementById('pagination-pub');
+  const info = document.getElementById('pagination-pub-info');
+  const btns = document.getElementById('page-btns-pub');
+  if (totalPages <= 1) { pag.style.display = 'none'; return; }
+  pag.style.display = 'flex';
+  const start = (currentPage - 1) * PAGE_SIZE + 1;
+  const end   = Math.min(currentPage * PAGE_SIZE, filteredRows.length);
+  info.textContent = `${start}–${end} of ${filteredRows.length}`;
+  let html = `<button class="page-btn" onclick="goPagePub(${currentPage-1})" ${currentPage===1?'disabled':''}>&lsaquo;</button>`;
+  for (let p = 1; p <= totalPages; p++) {
+    html += `<button class="page-btn${p===currentPage?' active':''}" onclick="goPagePub(${p})">${p}</button>`;
+  }
+  html += `<button class="page-btn" onclick="goPagePub(${currentPage+1})" ${currentPage===totalPages?'disabled':''}>&rsaquo;</button>`;
+  btns.innerHTML = html;
+}
+
+function goPagePub(p) {
+  const totalPages = Math.ceil(filteredRows.length / PAGE_SIZE);
+  if (p < 1 || p > totalPages) return;
+  currentPage = p;
+  renderPublished();
+  renderPaginationPub();
+}
+
+/* ── Override Modal ── */
+function openOverrideModal(row) {
+  document.getElementById('ov-schedule-id').value  = row.schedule_id || '';
+  document.getElementById('ov-employee-id').value  = row.employee_id || '';
+  document.getElementById('ov-date').value         = row.sched_date  || '';
+  document.getElementById('ov-emp-name').textContent    = formatEmployeeName(row);
+  document.getElementById('ov-date-display').textContent = fmtDate(row.sched_date);
+  document.getElementById('ov-current-shift').textContent =
+    (row.time_in && row.time_out) ? `${row.time_in}–${row.time_out}` : (row.shift_name || '—');
+  document.getElementById('ov-current-status').textContent = row.sched_type || '—';
+  document.getElementById('ov-new-shift').value  = '';
+  document.getElementById('ov-new-status').value = '';
+  document.getElementById('ov-reason').value     = '';
+  openModal('modal-override');
+}
+
+async function handleSaveOverride() {
+  const scheduleId = document.getElementById('ov-schedule-id').value;
+  const employeeId = document.getElementById('ov-employee-id').value;
+  const date       = document.getElementById('ov-date').value;
+  const newShift   = document.getElementById('ov-new-shift').value  || null;
+  const newStatus  = document.getElementById('ov-new-status').value || null;
+  const reason     = document.getElementById('ov-reason').value.trim();
+
+  if (!reason) { showToast('Reason is required.', 'error'); return; }
+  if (!newShift && !newStatus) { showToast('Select a new shift or status to override.', 'error'); return; }
+
+  const btn = document.getElementById('btn-save-override');
+  btn.disabled = true;
+  btn.textContent = 'Applying…';
+
+  try {
+    await apiFetch('/schedule/cell', {
+      method: 'POST',
+      body: JSON.stringify({
+        schedule_id:  scheduleId,
+        employee_id:  employeeId,
+        date,
+        shift_id:     newShift,
+        sched_type:   newStatus,
+        override:     true,
+        reason,
+        cutoff_id:    filters.cutoff,
+      }),
+    });
+    showToast('Override applied.', 'success');
+    closeModal('modal-override');
+    await loadPublished();
+  } catch (err) {
+    showToast('Override failed: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Apply Override';
+  }
+}
+
+/* ── Override Log ── */
+async function loadLog() {
+  const tbody = document.getElementById('log-tbody');
+  tbody.innerHTML = `<tr class="skeleton-row"><td colspan="7"><div class="skeleton skeleton-text"></div></td></tr>`.repeat(4);
+
+  try {
+    const params = new URLSearchParams();
+    if (filters.cutoff)  params.set('cutoff_id',  filters.cutoff);
+    if (filters.subdept) params.set('subdept_id', filters.subdept);
+    const res = await apiFetch(`/schedule/override-log?${params}`);
+    overrideLog = res.data || [];
+    renderLog();
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="7" class="table-empty">Failed to load log: ${err.message}</td></tr>`;
+  }
+}
+
+function renderLog() {
+  const tbody = document.getElementById('log-tbody');
+  if (!overrideLog.length) {
+    tbody.innerHTML = `<tr><td colspan="7" class="table-empty">No override records found.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = overrideLog.map(l => `<tr>
+    <td class="t-caption">${fmtDate(l.sched_date)}</td>
+    <td style="font-weight:500;">${formatEmployeeName(l)}</td>
+    <td style="font-size:12px;color:var(--text-secondary);">${l.old_value || '—'}</td>
+    <td style="font-size:12px;">${l.new_value || '—'}</td>
+    <td class="t-caption">${l.modified_by_name || '—'}</td>
+    <td style="font-size:12px;max-width:240px;">${l.reason || '—'}</td>
+    <td class="t-caption">${fmtDateTime(l.created_at)}</td>
+  </tr>`).join('');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MINERVA — HR Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&family=Space+Mono:wght@400;700&family=Doto:wght@100..900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/css/shared.css" />
+</head>
+<body>
+  <div id="app">
+    <nav id="sidebar"></nav>
+    <div id="main">
+      <header id="topbar"></header>
+      <div id="page-content" class="page-content">
+
+        <!-- Page Header -->
+        <div class="page-header mb-lg">
+          <div>
+            <div class="page-title">Dashboard</div>
+            <div class="page-subtitle" id="today-date">—</div>
+          </div>
+          <div class="page-actions">
+            <span class="t-caption" id="last-refresh">—</span>
+          </div>
+        </div>
+
+        <!-- KPI Row -->
+        <div class="grid-4 mb-lg">
+          <div class="kpi-card">
+            <div class="kpi-label">Today's Punches</div>
+            <div class="kpi-value" id="kpi-punches"><span class="skeleton" style="width:48px;height:32px;display:inline-block;"></span></div>
+            <div class="kpi-meta t-caption" id="kpi-punches-meta">—</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Pending Requests</div>
+            <div class="kpi-value" id="kpi-requests"><span class="skeleton" style="width:48px;height:32px;display:inline-block;"></span></div>
+            <div class="kpi-meta t-caption">OT · corrections · swaps</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Anomalies</div>
+            <div class="kpi-value t-accent" id="kpi-anomalies"><span class="skeleton" style="width:48px;height:32px;display:inline-block;"></span></div>
+            <div class="kpi-meta t-caption">Flagged today</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Pending Leave</div>
+            <div class="kpi-value" id="kpi-leave"><span class="skeleton" style="width:48px;height:32px;display:inline-block;"></span></div>
+            <div class="kpi-meta t-caption">Awaiting HR action</div>
+          </div>
+        </div>
+
+        <!-- Main grid: Live Feed + Pending Approvals -->
+        <div class="grid-2-1 mb-lg">
+          <!-- Live Punch Feed -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Live Punch Feed</div>
+              <span class="tag tag-active" id="feed-status">LIVE</span>
+            </div>
+            <div class="card-body" id="punch-feed">
+              <div class="skeleton-row"></div>
+              <div class="skeleton-row"></div>
+              <div class="skeleton-row"></div>
+              <div class="skeleton-row"></div>
+              <div class="skeleton-row"></div>
+            </div>
+          </div>
+
+          <!-- Pending Approvals -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Pending Approvals</div>
+              <a href="/pages/hr_requests.html" class="btn btn-ghost btn-sm">View All</a>
+            </div>
+            <div class="card-body" id="pending-list">
+              <div class="skeleton-row"></div>
+              <div class="skeleton-row"></div>
+              <div class="skeleton-row"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom grid: Leave Calendar + Recent Activity -->
+        <div class="grid-2">
+          <!-- Leave Calendar (approved leaves today) -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">On Leave Today</div>
+              <a href="/pages/hr_leave.html" class="btn btn-ghost btn-sm">Leave Module</a>
+            </div>
+            <div class="card-body" id="leave-today-list">
+              <div class="skeleton-row"></div>
+              <div class="skeleton-row"></div>
+            </div>
+          </div>
+
+          <!-- Recent Activity -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Recent Activity</div>
+            </div>
+            <div class="card-body" id="recent-activity-list">
+              <div class="skeleton-row"></div>
+              <div class="skeleton-row"></div>
+              <div class="skeleton-row"></div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /#page-content -->
+    </div><!-- /#main -->
+  </div><!-- /#app -->
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/config.js"></script>
+  <script src="/js/auth.js"></script>
+  <script>
+    function setKpi(id, val) {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = (val !== null && val !== undefined) ? String(val) : '—';
+    }
+
+    function makePunchItem(punch) {
+      const dir = (punch.new_state || punch.direction || '').toLowerCase();
+      const isIn = dir === 'c/in' || dir === 'in';
+      return `
+        <div class="punch-item">
+          <span class="punch-direction ${isIn ? 'in' : 'out'}">${isIn ? 'C/IN' : 'C/OUT'}</span>
+          <span style="flex:1;font-size:13px;color:var(--text-primary);">${punch.employee_name || punch.device_user_id || '—'}</span>
+          <span class="t-caption">${fmtTime(punch.record_time)}</span>
+        </div>`;
+    }
+
+    /* ---- Load KPIs ---- */
+    async function loadKpis() {
+      try {
+        const data = await apiFetch('/devices/dashboard-kpis');
+        if (data?.data) {
+          const d = data.data;
+          setKpi('kpi-punches',  d.today_punches ?? '0');
+          setKpi('kpi-requests', d.pending_requests ?? '0');
+          setKpi('kpi-anomalies', d.anomalies ?? '0');
+          setKpi('kpi-leave',    d.pending_leave ?? '0');
+          document.getElementById('kpi-punches-meta').textContent =
+            `${d.cin_count ?? 0} C/In · ${d.cout_count ?? 0} C/Out`;
+        }
+      } catch {
+        ['kpi-punches','kpi-requests','kpi-anomalies','kpi-leave'].forEach(id =>
+          setKpi(id, '<span class="t-caption" style="font-size:11px;">[ FAILED TO LOAD ]</span>')
+        );
+      }
+    }
+
+    /* ---- Load Pending Approvals ---- */
+    async function loadPending() {
+      const list = document.getElementById('pending-list');
+      try {
+        const data = await apiFetch('/requests?status=pending&limit=5');
+        const rows = data?.data || [];
+        if (!rows.length) {
+          list.innerHTML = `<div class="empty-state"><div class="t-caption">No pending approvals</div></div>`;
+          return;
+        }
+        list.innerHTML = rows.map(r => `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
+            <div>
+              <div style="font-size:13px;font-weight:500;color:var(--text-display);">${r.employee_name || '—'}</div>
+              <div class="t-caption">${r.request_type || 'Request'} · ${fmtDate(r.created_at)}</div>
+            </div>
+            <a href="/pages/hr_requests.html" class="btn btn-primary btn-sm">Review</a>
+          </div>`).join('');
+      } catch {
+        list.innerHTML = `<div class="t-caption" style="font-family:var(--font-mono);">[ FAILED TO LOAD ]</div>`;
+      }
+    }
+
+    /* ---- Load Leave Today ---- */
+    async function loadLeaveToday() {
+      const list = document.getElementById('leave-today-list');
+      try {
+        const today = getManilaDateISO();
+        const data  = await apiFetch(`/leave?date=${today}&status=approved`);
+        const rows  = data?.data || [];
+        if (!rows.length) {
+          list.innerHTML = `<div class="empty-state"><div class="t-caption">No approved leaves today</div></div>`;
+          return;
+        }
+        list.innerHTML = rows.map(r => `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
+            <div>
+              <div style="font-size:13px;font-weight:500;color:var(--text-display);">${r.employee_name || '—'}</div>
+              <div class="t-caption">${r.leave_type || 'Leave'} · ${fmtDate(r.date_from)} – ${fmtDate(r.date_to)}</div>
+            </div>
+            <span class="tag tag-active">APPROVED</span>
+          </div>`).join('');
+      } catch {
+        list.innerHTML = `<div class="t-caption" style="font-family:var(--font-mono);">[ FAILED TO LOAD ]</div>`;
+      }
+    }
+
+    /* ---- Load Recent Activity ---- */
+    async function loadRecentActivity() {
+      const list = document.getElementById('recent-activity-list');
+      try {
+        const data = await apiFetch('/audit?limit=5');
+        const rows = data?.data || [];
+        if (!rows.length) {
+          list.innerHTML = `<div class="empty-state"><div class="t-caption">No recent activity</div></div>`;
+          return;
+        }
+        list.innerHTML = rows.map(r => `
+          <div style="padding:10px 0;border-bottom:1px solid var(--border);">
+            <div style="font-size:13px;color:var(--text-primary);">${r.action || '—'}</div>
+            <div class="t-caption">${r.performed_by || '—'} · ${fmtDateTime(r.created_at)}</div>
+          </div>`).join('');
+      } catch {
+        list.innerHTML = `<div class="t-caption" style="font-family:var(--font-mono);">[ FAILED TO LOAD ]</div>`;
+      }
+    }
+
+    /* ---- Socket.io punch feed ---- */
+    function initSocket() {
+      const token = localStorage.getItem(CONFIG.TOKEN_KEY);
+      const socket = io({ auth: { token } });
+      const feed = document.getElementById('punch-feed');
+
+      feed.innerHTML = `<div class="empty-state"><div class="t-caption">Waiting for punches...</div></div>`;
+
+      socket.on('connect', () => {
+        document.getElementById('punch-dot')?.classList.remove('offline');
+      });
+      socket.on('disconnect', () => {
+        document.getElementById('punch-dot')?.classList.add('offline');
+        document.getElementById('feed-status').textContent = 'OFFLINE';
+        document.getElementById('feed-status').className = 'tag tag-error';
+      });
+      socket.on('PUNCH_RECEIVED', (punch) => {
+        const empty = feed.querySelector('.empty-state');
+        if (empty) empty.remove();
+        feed.insertAdjacentHTML('afterbegin', makePunchItem(punch));
+        const items = feed.querySelectorAll('.punch-item');
+        if (items.length > 30) items[items.length - 1].remove();
+        const kpiEl = document.getElementById('kpi-punches');
+        if (kpiEl) kpiEl.textContent = (parseInt(kpiEl.textContent) || 0) + 1;
+      });
+      socket.on('REQUEST_SUBMITTED', () => {
+        const el = document.getElementById('kpi-requests');
+        if (el) el.textContent = (parseInt(el.textContent) || 0) + 1;
+        loadPending();
+      });
+    }
+
+    function initPage() {
+      document.getElementById('today-date').textContent = new Date().toLocaleDateString('en-PH', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Manila',
+      });
+      document.getElementById('last-refresh').textContent = `Refreshed ${fmtTime(new Date())}`;
+      loadKpis();
+      loadPending();
+      loadLeaveToday();
+      loadRecentActivity();
+      initSocket();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const user = requireRole('hr', 'super_admin');
+      if (!user) return;
+      buildShell(user, 'dashboard', 'Dashboard');
+      initPage(user);
+    });
+  </script>
+</body>
+</html>

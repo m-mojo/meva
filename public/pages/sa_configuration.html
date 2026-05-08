@@ -1,0 +1,1433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Configuration — MINERVA HRIS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&family=Space+Mono:wght@400;700&family=Doto:wght@100..900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/css/shared.css"/>
+</head>
+<body>
+<div id="app">
+  <nav id="sidebar"></nav>
+  <div id="main">
+    <header id="topbar"></header>
+    <main id="page-content">
+
+      <!-- Page Header -->
+      <div class="page-header mb-lg">
+        <div>
+          <div class="page-title">Configuration</div>
+          <div class="page-subtitle">System-wide settings — Super Admin</div>
+        </div>
+        <div class="page-actions" id="page-actions"></div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs mb-lg" id="main-tabs" style="flex-wrap:wrap;gap:4px;">
+        <div class="tab-item active"  data-tab="computation">Computation Rules</div>
+        <div class="tab-item"         data-tab="holidays">Holidays</div>
+        <div class="tab-item"         data-tab="leave">Leave Config</div>
+        <div class="tab-item"         data-tab="notifications">Notifications</div>
+        <div class="tab-item"         data-tab="users">User Accounts</div>
+        <div class="tab-item"         data-tab="org">Org Structure</div>
+        <div class="tab-item"         data-tab="devices">Device Settings</div>
+        <div class="tab-item"         data-tab="company">Company Setup</div>
+        <div class="tab-item"         data-tab="cutoff">Cutoff Config</div>
+        <div class="tab-item"         data-tab="system">System Config</div>
+      </div>
+
+      <!-- ========== TAB: COMPUTATION RULES ========== -->
+      <div class="tab-pane active" id="tab-computation">
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header"><div class="card-title">Punch Timing</div></div>
+            <div class="card-body">
+              <div class="form-group">
+                <label class="form-label">Company</label>
+                <select class="form-select" id="cr-company">
+                  <option value="1">UTH — Uno Transit Hotel</option>
+                  <option value="2">SSH — SSH Company</option>
+                </select>
+              </div>
+              <div class="divider"></div>
+              <div class="form-group">
+                <label class="form-label">Duplicate Punch Window (seconds)</label>
+                <input type="number" class="form-input" id="cr-dup-window" min="0" max="300" placeholder="60"/>
+                <div class="form-hint">Punches within this window are silently dropped. Default: 60s.</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Punch Reset Hours</label>
+                <input type="number" class="form-input" id="cr-reset-hours" min="1" max="24" placeholder="14"/>
+                <div class="form-hint">If no punch for this many hours, next punch forces C/In. Default: 14h.</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Grace Period (minutes)</label>
+                <input type="number" class="form-input" id="cr-grace-period" min="0" max="60" placeholder="5"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Early OT Threshold (minutes)</label>
+                <input type="number" class="form-input" id="cr-early-ot" min="0" max="120" placeholder="30"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Late OT Threshold (minutes)</label>
+                <input type="number" class="form-input" id="cr-late-ot" min="0" max="120" placeholder="30"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Near-Window Tolerance (minutes)</label>
+                <input type="number" class="form-input" id="cr-near-window" min="0" max="60" placeholder="10"/>
+                <div class="form-hint">Outside schedule window but within tolerance → anomaly flag, not auto-OT.</div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Break Deduction</div></div>
+            <div class="card-body">
+              <div class="toggle-row mb-md">
+                <div class="toggle-info">
+                  <div class="toggle-label">Enable Break Deduction</div>
+                  <div class="toggle-hint">Auto-deduct break when shift exceeds threshold.</div>
+                </div>
+                <label class="toggle"><input type="checkbox" id="cr-break-enabled"/><span class="toggle-track"></span></label>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Break Deduct Threshold (hours)</label>
+                <input type="number" class="form-input" id="cr-break-threshold" min="0" max="24" step="0.5" placeholder="9"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Break Deduction Amount (hours)</label>
+                <input type="number" class="form-input" id="cr-break-hours" min="0" max="4" step="0.5" placeholder="1"/>
+              </div>
+              <div class="divider"></div>
+              <div class="toggle-row">
+                <div class="toggle-info">
+                  <div class="toggle-label">Apply Break to Graveyard Shifts</div>
+                  <div class="toggle-hint">If OFF, graveyard shifts skip break deduction regardless of hours.</div>
+                </div>
+                <label class="toggle"><input type="checkbox" id="cr-break-graveyard"/><span class="toggle-track"></span></label>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mb-md" style="display:flex;align-items:center;gap:var(--space-sm);">
+          <button class="btn btn-primary" id="btn-save-rules">Save Rules</button>
+          <span class="t-caption t-secondary" id="rules-save-status"></span>
+        </div>
+      </div>
+
+      <!-- ========== TAB: HOLIDAYS ========== -->
+      <div class="tab-pane hidden" id="tab-holidays">
+        <div class="page-header mb-md" style="padding:0;">
+          <div>
+            <div class="t-label">Holiday List</div>
+            <div class="t-caption t-secondary">Governs day_scenario in timekeeping computation.</div>
+          </div>
+          <div class="page-actions">
+            <select class="filter-select" id="holiday-filter-company" style="min-width:140px;">
+              <option value="">All Companies</option>
+              <option value="1">UTH</option>
+              <option value="2">SSH</option>
+            </select>
+            <select class="filter-select" id="holiday-filter-year" style="min-width:100px;">
+              <option value="2026">2026</option>
+              <option value="2025">2025</option>
+            </select>
+            <button class="btn btn-primary btn-sm" id="btn-add-holiday">+ Add Holiday</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Date</th><th>Holiday Name</th><th>Type</th><th>Company</th><th style="width:100px;">Actions</th></tr>
+              </thead>
+              <tbody id="holidays-tbody">
+                <tr><td colspan="5" style="text-align:center;padding:var(--space-lg);"><div class="skeleton-row"></div><div class="skeleton-row"></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== TAB: LEAVE CONFIGURATION ========== -->
+      <div class="tab-pane hidden" id="tab-leave">
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header"><div class="card-title">Tenure-Based Leave Allocation</div></div>
+            <div class="card-body">
+              <div class="t-caption t-secondary mb-md">VL days based on completed years of service. SL is fixed.</div>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>Tenure Range</th><th>VL Days</th><th>SL Days</th></tr></thead>
+                  <tbody>
+                    <tr><td class="t-caption">0 – &lt; 1 year</td><td><input type="number" class="form-input" style="width:64px;padding:4px 8px;" id="vl-yr0" value="5" min="0"/></td><td><input type="number" class="form-input" style="width:64px;padding:4px 8px;" id="sl-yr0" value="5" min="0"/></td></tr>
+                    <tr><td class="t-caption">1 – &lt; 2 years</td><td><input type="number" class="form-input" style="width:64px;padding:4px 8px;" id="vl-yr1" value="5" min="0"/></td><td><input type="number" class="form-input" style="width:64px;padding:4px 8px;" id="sl-yr1" value="5" min="0"/></td></tr>
+                    <tr><td class="t-caption">2 – &lt; 3 years</td><td><input type="number" class="form-input" style="width:64px;padding:4px 8px;" id="vl-yr2" value="6" min="0"/></td><td><input type="number" class="form-input" style="width:64px;padding:4px 8px;" id="sl-yr2" value="5" min="0"/></td></tr>
+                    <tr><td class="t-caption">3 – &lt; 5 years</td><td><input type="number" class="form-input" style="width:64px;padding:4px 8px;" id="vl-yr3" value="7" min="0"/></td><td><input type="number" class="form-input" style="width:64px;padding:4px 8px;" id="sl-yr3" value="5" min="0"/></td></tr>
+                    <tr><td class="t-caption">5+ years</td><td><input type="number" class="form-input" style="width:64px;padding:4px 8px;" id="vl-yr5" value="7" min="0"/></td><td><input type="number" class="form-input" style="width:64px;padding:4px 8px;" id="sl-yr5" value="5" min="0"/></td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div style="margin-top:var(--space-md);">
+                <button class="btn btn-primary btn-sm" id="btn-save-tenure">Save Allocation</button>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Leave Cashout Settings</div></div>
+            <div class="card-body">
+              <div class="toggle-row mb-md">
+                <div class="toggle-info"><div class="toggle-label">Enable VL Cashout</div><div class="toggle-hint">Allow unused Vacation Leave to be converted to pay.</div></div>
+                <label class="toggle"><input type="checkbox" id="leave-vl-cashout" checked/><span class="toggle-track"></span></label>
+              </div>
+              <div class="toggle-row mb-md">
+                <div class="toggle-info"><div class="toggle-label">Enable SL Year-End Cashout</div><div class="toggle-hint">Unused SL credits cashed out at year-end per company policy.</div></div>
+                <label class="toggle"><input type="checkbox" id="leave-sl-cashout" checked/><span class="toggle-track"></span></label>
+              </div>
+              <div class="form-group">
+                <label class="form-label">SL Cashout Date (MM-DD)</label>
+                <input type="text" class="form-input" id="sl-cashout-date" placeholder="12-31" style="max-width:120px;"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Max VL Carryover (days)</label>
+                <input type="number" class="form-input" id="vl-carryover-max" min="0" placeholder="5" style="max-width:100px;"/>
+                <div class="form-hint">0 = no carryover.</div>
+              </div>
+              <div class="divider"></div>
+              <button class="btn btn-primary btn-sm" id="btn-save-cashout">Save Cashout Settings</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== TAB: NOTIFICATIONS ========== -->
+      <div class="tab-pane hidden" id="tab-notifications">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Notification Event Settings</div>
+            <span class="t-caption t-secondary">Toggle events and recipient roles for in-app notifications.</span>
+          </div>
+          <div class="card-body" id="notif-list">
+            <div class="skeleton-row mb-sm"></div><div class="skeleton-row mb-sm"></div><div class="skeleton-row mb-sm"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== TAB: USER ACCOUNTS ========== -->
+      <div class="tab-pane hidden" id="tab-users">
+        <div class="page-header mb-md" style="padding:0;">
+          <div>
+            <div class="t-label">User Accounts</div>
+            <div class="t-caption t-secondary">All system login accounts across both companies.</div>
+          </div>
+          <div class="page-actions">
+            <select class="filter-select" id="user-filter-role" style="min-width:140px;">
+              <option value="">All Roles</option>
+              <option value="super_admin">Super Admin</option>
+              <option value="hr">HR Admin</option>
+              <option value="coord">Coordinator</option>
+              <option value="it">IT Admin</option>
+              <option value="admin">Admin</option>
+            </select>
+            <select class="filter-select" id="user-filter-status" style="min-width:120px;">
+              <option value="">All Status</option>
+              <option value="1">Active</option>
+              <option value="0">Inactive</option>
+            </select>
+            <button class="btn btn-primary btn-sm" id="btn-add-user">+ Add User</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Username</th><th>Role</th><th>Company</th><th>Subdept Scope</th><th>Last Login</th><th>Status</th><th style="width:120px;">Actions</th></tr>
+              </thead>
+              <tbody id="users-tbody">
+                <tr><td colspan="7" style="text-align:center;padding:var(--space-lg);"><div class="skeleton-row"></div><div class="skeleton-row"></div><div class="skeleton-row"></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== TAB: ORG STRUCTURE ========== -->
+      <div class="tab-pane hidden" id="tab-org">
+        <div class="t-caption t-secondary mb-md">Manage the company hierarchy: departments → subdepartments → positions.</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--space-md);">
+          <div class="card" style="height:fit-content;">
+            <div class="card-header"><div class="card-title">Departments</div><button class="btn btn-ghost btn-sm" id="btn-add-dept">+ Add</button></div>
+            <div class="card-body" id="dept-list" style="min-height:160px;"><div class="skeleton-row mb-sm"></div><div class="skeleton-row mb-sm"></div></div>
+          </div>
+          <div class="card" style="height:fit-content;">
+            <div class="card-header"><div class="card-title">Subdepartments</div><button class="btn btn-ghost btn-sm" id="btn-add-subdept" disabled>+ Add</button></div>
+            <div class="card-body" id="subdept-list" style="min-height:160px;"><div class="t-caption t-secondary" style="padding:var(--space-sm) 0;">Select a department first.</div></div>
+          </div>
+          <div class="card" style="height:fit-content;">
+            <div class="card-header"><div class="card-title">Positions</div><button class="btn btn-ghost btn-sm" id="btn-add-position" disabled>+ Add</button></div>
+            <div class="card-body" id="position-list" style="min-height:160px;"><div class="t-caption t-secondary" style="padding:var(--space-sm) 0;">Select a subdepartment first.</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== TAB: DEVICE SETTINGS ========== -->
+      <div class="tab-pane hidden" id="tab-devices">
+        <div class="page-header mb-md" style="padding:0;">
+          <div>
+            <div class="t-label">Device Configuration</div>
+            <div class="t-caption t-secondary">Edit IP addresses, ports, and serial numbers for registered biometric devices.</div>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-ghost btn-sm" id="btn-refresh-devices">Refresh</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Device Code</th><th>Name</th><th>IP Address</th><th>Port</th><th>Serial</th><th>Company</th><th>Status</th><th style="width:80px;">Actions</th></tr>
+              </thead>
+              <tbody id="devices-tbody">
+                <tr><td colspan="8" style="text-align:center;padding:var(--space-lg);"><div class="skeleton-row"></div><div class="skeleton-row"></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== TAB: COMPANY SETUP ========== -->
+      <div class="tab-pane hidden" id="tab-company">
+        <div class="t-caption t-secondary mb-md">Edit legal and registration details for both companies.</div>
+        <div class="grid-2">
+
+          <!-- UTH -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">UTH — Uno Transit Hotel</div>
+              <span class="tag tag-neutral">company_id = 1</span>
+            </div>
+            <div class="card-body">
+              <div class="form-group">
+                <label class="form-label">Company Name</label>
+                <input type="text" class="form-input" id="uth-name" placeholder="Uno Transit Hotel"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">TIN</label>
+                <input type="text" class="form-input" id="uth-tin" placeholder="000-000-000-000" style="font-family:var(--font-mono);"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">DOLE Registration Number</label>
+                <input type="text" class="form-input" id="uth-dole" placeholder="DOLE-RNCR-ESTAB-XXXXXX"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Address</label>
+                <textarea class="form-textarea" id="uth-address" rows="3" placeholder="Street, City, Province, ZIP"></textarea>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Contact Number</label>
+                <input type="text" class="form-input" id="uth-contact" placeholder="+63 2 XXXX XXXX"/>
+              </div>
+              <button class="btn btn-primary btn-sm" id="btn-save-uth">Save UTH</button>
+            </div>
+          </div>
+
+          <!-- SSH -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">SSH — SSH Company</div>
+              <span class="tag tag-neutral">company_id = 2</span>
+            </div>
+            <div class="card-body">
+              <div class="form-group">
+                <label class="form-label">Company Name</label>
+                <input type="text" class="form-input" id="ssh-name" placeholder="SSH Company"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">TIN</label>
+                <input type="text" class="form-input" id="ssh-tin" placeholder="000-000-000-000" style="font-family:var(--font-mono);"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">DOLE Registration Number</label>
+                <input type="text" class="form-input" id="ssh-dole" placeholder="DOLE-RNCR-ESTAB-XXXXXX"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Address</label>
+                <textarea class="form-textarea" id="ssh-address" rows="3" placeholder="Street, City, Province, ZIP"></textarea>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Contact Number</label>
+                <input type="text" class="form-input" id="ssh-contact" placeholder="+63 2 XXXX XXXX"/>
+              </div>
+              <button class="btn btn-primary btn-sm" id="btn-save-ssh">Save SSH</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ========== TAB: CUTOFF CONFIGURATION ========== -->
+      <div class="tab-pane hidden" id="tab-cutoff">
+        <div class="grid-2 mb-lg">
+          <div class="card">
+            <div class="card-header"><div class="card-title">Cutoff Cycle Settings</div></div>
+            <div class="card-body">
+              <div class="t-caption t-secondary mb-md">Philippine standard: Period 1 = 11th–25th, Period 2 = 26th–10th next month.</div>
+              <div class="form-group">
+                <label class="form-label">First Cutoff Anchor Date</label>
+                <input type="date" class="form-input" id="cutoff-anchor" value="2026-01-11"/>
+                <div class="form-hint">Start date of the first Period 1 of the year. Cutoffs are auto-derived.</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Period Length (days)</label>
+                <input type="number" class="form-input" id="cutoff-period-length" value="15" min="10" max="20" style="max-width:100px;"/>
+                <div class="form-hint">Default: 15 days per period.</div>
+              </div>
+              <button class="btn btn-primary btn-sm" id="btn-save-cutoff-settings">Save Settings</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Generate Cutoffs</div>
+            </div>
+            <div class="card-body">
+              <div class="form-group">
+                <label class="form-label">Generate Through (Month / Year)</label>
+                <div style="display:flex;gap:var(--space-sm);">
+                  <select class="form-select" id="gen-month" style="flex:1;">
+                    <option value="1">January</option><option value="2">February</option><option value="3">March</option>
+                    <option value="4">April</option><option value="5">May</option><option value="6">June</option>
+                    <option value="7">July</option><option value="8">August</option><option value="9">September</option>
+                    <option value="10">October</option><option value="11">November</option><option value="12">December</option>
+                  </select>
+                  <input type="number" class="form-input" id="gen-year" value="2026" min="2026" max="2030" style="width:90px;"/>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Apply to Company</label>
+                <select class="form-select" id="gen-company">
+                  <option value="both">Both (UTH + SSH)</option>
+                  <option value="1">UTH only</option>
+                  <option value="2">SSH only</option>
+                </select>
+              </div>
+              <button class="btn btn-primary btn-sm" id="btn-generate-cutoffs">Generate Next Cutoffs</button>
+              <div class="t-caption t-secondary" id="gen-status" style="margin-top:8px;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Existing Cutoffs Table -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Existing Cutoff Periods</div>
+            <div style="display:flex;gap:var(--space-sm);">
+              <select class="filter-select" id="cutoff-filter-company" style="min-width:120px;">
+                <option value="">All Companies</option>
+                <option value="1">UTH</option>
+                <option value="2">SSH</option>
+              </select>
+              <select class="filter-select" id="cutoff-filter-year" style="min-width:100px;">
+                <option value="2026">2026</option>
+                <option value="2025">2025</option>
+              </select>
+              <button class="btn btn-ghost btn-sm" id="btn-refresh-cutoffs">Refresh</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Period Label</th><th>Start Date</th><th>End Date</th><th>Company</th><th>Status</th></tr>
+              </thead>
+              <tbody id="cutoffs-tbody">
+                <tr><td colspan="5" style="text-align:center;padding:var(--space-lg);"><div class="skeleton-row"></div><div class="skeleton-row"></div><div class="skeleton-row"></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== TAB: SYSTEM CONFIG ========== -->
+      <div class="tab-pane hidden" id="tab-system">
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header"><div class="card-title">Session &amp; Retention</div></div>
+            <div class="card-body">
+              <div class="form-group">
+                <label class="form-label">Session TTL (hours)</label>
+                <input type="number" class="form-input" id="sys-session-ttl" min="1" max="168" placeholder="8" style="max-width:100px;"/>
+                <div class="form-hint">JWT tokens expire after this many hours. Restart required after change.</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Audit Log Retention (days)</label>
+                <input type="number" class="form-input" id="sys-audit-retention" min="30" placeholder="2555" style="max-width:120px;"/>
+                <div class="form-hint">7 years = 2555 days. Audit records older than this may be archived.</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Missed Punch Detection Buffer (minutes)</label>
+                <input type="number" class="form-input" id="sys-missed-punch-buffer" min="1" placeholder="30" style="max-width:120px;"/>
+                <div class="form-hint">Wait this long after expected punch-out before flagging a missed punch.</div>
+              </div>
+              <button class="btn btn-primary btn-sm" id="btn-save-system">Save System Settings</button>
+              <span class="t-caption t-secondary" id="sys-save-status" style="margin-left:8px;"></span>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><div class="card-title">Bootstrap Account</div></div>
+            <div class="card-body">
+              <div class="t-caption t-secondary mb-md">The bootstrap account was created at first migration to allow initial login. Once a real super_admin account is confirmed active, the bootstrap account should be permanently deactivated.</div>
+              <div id="bootstrap-status-block">
+                <div class="skeleton-row mb-sm"></div>
+              </div>
+              <div class="divider"></div>
+              <div class="t-caption" style="color:var(--warning);margin-bottom:var(--space-sm);">This action is irreversible. The bootstrap account cannot be reactivated once deactivated.</div>
+              <button class="btn btn-primary btn-sm" id="btn-deactivate-bootstrap" style="background:var(--warning);" disabled>Deactivate Bootstrap Account</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- ========== MODAL: ADD / EDIT HOLIDAY ========== -->
+<div class="modal-overlay hidden" id="modal-holiday">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-holiday-title">Add Holiday</div>
+      <button class="modal-close" id="btn-close-holiday-modal">&times;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="holiday-edit-id"/>
+      <div class="form-group">
+        <label class="form-label">Date <span style="color:var(--warning)">*</span></label>
+        <input type="date" class="form-input" id="holiday-date"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Holiday Name <span style="color:var(--warning)">*</span></label>
+        <input type="text" class="form-input" id="holiday-name" placeholder="e.g. Independence Day"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Type <span style="color:var(--warning)">*</span></label>
+        <select class="form-select" id="holiday-type">
+          <option value="regular">Regular Holiday</option>
+          <option value="special">Special Non-Working</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Company <span style="color:var(--warning)">*</span></label>
+        <select class="form-select" id="holiday-company">
+          <option value="1">UTH — Uno Transit Hotel</option>
+          <option value="2">SSH — SSH Company</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="btn-cancel-holiday">Cancel</button>
+      <button class="btn btn-primary" id="btn-save-holiday">Save Holiday</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== MODAL: DELETE HOLIDAY ========== -->
+<div class="modal-overlay hidden" id="modal-delete-holiday">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-header">
+      <div class="modal-title">Delete Holiday</div>
+      <button class="modal-close" id="btn-close-delete-holiday">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p class="t-secondary" id="delete-holiday-msg">Are you sure you want to remove this holiday?</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="btn-cancel-delete-holiday">Cancel</button>
+      <button class="btn btn-primary" id="btn-confirm-delete-holiday" style="background:var(--warning);">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== MODAL: ADD / EDIT USER ========== -->
+<div class="modal-overlay hidden" id="modal-user">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-user-title">Add User</div>
+      <button class="modal-close" id="btn-close-user-modal">&times;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="user-edit-id"/>
+      <div class="form-group">
+        <label class="form-label">Username <span style="color:var(--warning)">*</span></label>
+        <input type="text" class="form-input" id="user-username" placeholder="e.g. jdoe"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" class="form-input" id="user-password" placeholder="Minimum 8 characters"/>
+        <div class="form-hint">Leave blank to keep existing password when editing.</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Role <span style="color:var(--warning)">*</span></label>
+        <select class="form-select" id="user-role">
+          <option value="">— select role —</option>
+          <option value="super_admin">Super Admin</option>
+          <option value="hr">HR Admin</option>
+          <option value="coord">Coordinator / OIC</option>
+          <option value="it">IT Admin</option>
+          <option value="admin">Admin (View-only)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Company <span style="color:var(--warning)">*</span></label>
+        <select class="form-select" id="user-company">
+          <option value="1">UTH — Uno Transit Hotel</option>
+          <option value="2">SSH — SSH Company</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Subdept Scope</label>
+        <select class="form-select" id="user-subdept-scope">
+          <option value="">All (no restriction)</option>
+        </select>
+        <div class="form-hint">For Coordinators and HR with restricted subdept access.</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="btn-cancel-user">Cancel</button>
+      <button class="btn btn-primary" id="btn-save-user">Save User</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== MODAL: DEACTIVATE USER ========== -->
+<div class="modal-overlay hidden" id="modal-deactivate-user">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-header">
+      <div class="modal-title">Deactivate User</div>
+      <button class="modal-close" id="btn-close-deactivate-user">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p class="t-secondary" id="deactivate-user-msg">Deactivate this user? They will no longer be able to log in.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="btn-cancel-deactivate-user">Cancel</button>
+      <button class="btn btn-primary" id="btn-confirm-deactivate-user" style="background:var(--warning);">Deactivate</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== MODAL: EDIT DEVICE ========== -->
+<div class="modal-overlay hidden" id="modal-device">
+  <div class="modal" style="max-width:460px;">
+    <div class="modal-header">
+      <div class="modal-title">Edit Device</div>
+      <button class="modal-close" id="btn-close-device-modal">&times;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="device-edit-id"/>
+      <div class="form-group">
+        <label class="form-label">Device Name</label>
+        <input type="text" class="form-input" id="device-name" readonly style="background:var(--surface);color:var(--text-secondary);"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">IP Address <span style="color:var(--warning)">*</span></label>
+        <input type="text" class="form-input" id="device-ip" placeholder="192.168.1.110"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Port <span style="color:var(--warning)">*</span></label>
+        <input type="number" class="form-input" id="device-port" placeholder="4370" min="1" max="65535"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Serial Number</label>
+        <input type="text" class="form-input" id="device-serial" placeholder="KMY2260500024"/>
+        <div class="form-hint">Changing the serial resets the sync cursor. Confirm with IT before changing.</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="btn-cancel-device">Cancel</button>
+      <button class="btn btn-primary" id="btn-save-device">Save Device</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== MODAL: ADD ORG ITEM ========== -->
+<div class="modal-overlay hidden" id="modal-org">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-org-title">Add Item</div>
+      <button class="modal-close" id="btn-close-org-modal">&times;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="org-edit-id"/>
+      <input type="hidden" id="org-type"/>
+      <input type="hidden" id="org-parent-id"/>
+      <div class="form-group">
+        <label class="form-label" id="org-name-label">Name <span style="color:var(--warning)">*</span></label>
+        <input type="text" class="form-input" id="org-name"/>
+      </div>
+      <div class="form-group" id="org-company-group">
+        <label class="form-label">Company <span style="color:var(--warning)">*</span></label>
+        <select class="form-select" id="org-company">
+          <option value="1">UTH — Uno Transit Hotel</option>
+          <option value="2">SSH — SSH Company</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="btn-cancel-org">Cancel</button>
+      <button class="btn btn-primary" id="btn-save-org">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== MODAL: DEACTIVATE BOOTSTRAP ========== -->
+<div class="modal-overlay hidden" id="modal-bootstrap-confirm">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-header">
+      <div class="modal-title">Deactivate Bootstrap Account</div>
+      <button class="modal-close" id="btn-close-bootstrap-modal">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p class="t-secondary">This will permanently deactivate the bootstrap account. This action cannot be undone. Ensure at least one active super_admin account exists before proceeding.</p>
+      <div class="form-group" style="margin-top:var(--space-md);">
+        <label class="form-label">Type CONFIRM to proceed</label>
+        <input type="text" class="form-input" id="bootstrap-confirm-input" placeholder="CONFIRM"/>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="btn-cancel-bootstrap">Cancel</button>
+      <button class="btn btn-primary" id="btn-confirm-bootstrap" style="background:var(--warning);" disabled>Deactivate</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/config.js"></script>
+<script src="/js/auth.js"></script>
+<script>
+/* ─── Bootstrap ─────────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', () => {
+  const user = requireRole('super_admin');
+  if (!user) return;
+  buildShell(user, 'configuration', 'Configuration');
+  initPage(user);
+});
+
+/* ─── State ──────────────────────────────────────────────────── */
+let currentCompanyId     = 1;
+let editingHolidayId     = null;
+let deletingHolidayId    = null;
+let editingUserId        = null;
+let deactivatingUserId   = null;
+let editingDeviceId      = null;
+let selectedDeptId       = null;
+let selectedSubdeptId    = null;
+let orgEditingId         = null;
+let orgType              = null;
+
+const NOTIF_EVENTS = [
+  { code: 'MISSED_PUNCH_DETECTED',   label: 'Missed Punch Detected',       roles: ['hr'] },
+  { code: 'BIOMETRIC_NOT_ENROLLED',  label: 'Biometric Not Enrolled',       roles: ['it', 'hr'] },
+  { code: 'OT_FLAGGED_NO_FORM',      label: 'OT Flagged – No Form',         roles: ['hr'] },
+  { code: 'ANOMALY_DETECTED',        label: 'Anomaly Detected',             roles: ['hr'] },
+  { code: 'LEAVE_REQUEST_SUBMITTED', label: 'Leave Request Submitted',      roles: ['hr'] },
+  { code: 'REQUEST_SUBMITTED',       label: 'Form Request Submitted',       roles: ['hr'] },
+  { code: 'DEVICE_SYNC_FAILED',      label: 'Device Sync Failed',           roles: ['it'] },
+  { code: 'DEVICE_CLOCK_DRIFT',      label: 'Device Clock Drift Detected',  roles: ['it'] },
+  { code: 'SCHEDULE_PUBLISHED',      label: 'Schedule Published',           roles: ['coord'] },
+  { code: 'EMPLOYEE_TRANSFER',       label: 'Employee Transfer',            roles: ['hr', 'coord'] },
+];
+
+/* ─── Init ───────────────────────────────────────────────────── */
+function initPage(user) {
+  setupTabs();
+  // Computation Rules
+  setupCompanySwitch();
+  loadComputationRules();
+  setupRulesSave();
+  // Holidays
+  loadHolidays();
+  setupHolidayModal();
+  // Notifications
+  renderNotifications();
+  // Users
+  loadUsers();
+  setupUserModal();
+  // Org
+  loadOrgDepartments();
+  setupOrgActions();
+  // Devices
+  loadDevices();
+  setupDeviceModal();
+  // Company
+  loadCompanyDetails();
+  setupCompanySave();
+  // Cutoff
+  loadCutoffs();
+  setupCutoffActions();
+  // System
+  loadSystemConfig();
+  setupSystemSave();
+  setupBootstrapDeactivate();
+}
+
+/* ─── Tabs ───────────────────────────────────────────────────── */
+function setupTabs() {
+  document.querySelectorAll('.tab-item').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-pane').forEach(p => p.classList.add('hidden'));
+      tab.classList.add('active');
+      document.getElementById('tab-' + tab.dataset.tab).classList.remove('hidden');
+    });
+  });
+}
+
+/* ─── Computation Rules ──────────────────────────────────────── */
+function setupCompanySwitch() {
+  document.getElementById('cr-company').addEventListener('change', function() {
+    currentCompanyId = parseInt(this.value);
+    loadComputationRules();
+  });
+}
+async function loadComputationRules() {
+  try {
+    const token = getToken();
+    const [pcRes, rcRes] = await Promise.all([
+      fetch(`${CONFIG.API_BASE}/config/punch-config?company_id=${currentCompanyId}`, { headers: { Authorization: `Bearer ${token}` } }),
+      fetch(`${CONFIG.API_BASE}/config/computation-rules?company_id=${currentCompanyId}`, { headers: { Authorization: `Bearer ${token}` } }),
+    ]);
+    if (pcRes.ok) {
+      const { data } = await pcRes.json();
+      if (data) {
+        document.getElementById('cr-dup-window').value  = data.duplicate_punch_window_seconds ?? 60;
+        document.getElementById('cr-reset-hours').value = data.punch_reset_hours ?? 14;
+      }
+    }
+    if (rcRes.ok) {
+      const { data } = await rcRes.json();
+      if (data) {
+        document.getElementById('cr-grace-period').value   = data.grace_period_minutes ?? 5;
+        document.getElementById('cr-early-ot').value       = data.early_ot_threshold_minutes ?? 30;
+        document.getElementById('cr-late-ot').value        = data.late_ot_threshold_minutes ?? 30;
+        document.getElementById('cr-near-window').value    = data.near_window_tolerance_minutes ?? 10;
+        document.getElementById('cr-break-enabled').checked  = !!data.break_deduction_enabled;
+        document.getElementById('cr-break-threshold').value  = data.break_deduct_threshold_hours ?? 9;
+        document.getElementById('cr-break-hours').value      = data.break_deduct_hours ?? 1;
+        document.getElementById('cr-break-graveyard').checked = !!data.break_applies_to_graveyard;
+      }
+    }
+  } catch (err) { console.error('Failed to load computation rules:', err); }
+}
+function setupRulesSave() {
+  document.getElementById('btn-save-rules').addEventListener('click', async () => {
+    const token = getToken();
+    const status = document.getElementById('rules-save-status');
+    status.textContent = 'Saving…';
+    try {
+      const punchBody = {
+        company_id: currentCompanyId,
+        duplicate_punch_window_seconds: parseInt(document.getElementById('cr-dup-window').value),
+        punch_reset_hours: parseInt(document.getElementById('cr-reset-hours').value),
+      };
+      const rulesBody = {
+        company_id: currentCompanyId,
+        grace_period_minutes:          parseInt(document.getElementById('cr-grace-period').value),
+        early_ot_threshold_minutes:    parseInt(document.getElementById('cr-early-ot').value),
+        late_ot_threshold_minutes:     parseInt(document.getElementById('cr-late-ot').value),
+        near_window_tolerance_minutes: parseInt(document.getElementById('cr-near-window').value),
+        break_deduction_enabled:       document.getElementById('cr-break-enabled').checked,
+        break_deduct_threshold_hours:  parseFloat(document.getElementById('cr-break-threshold').value),
+        break_deduct_hours:            parseFloat(document.getElementById('cr-break-hours').value),
+        break_applies_to_graveyard:    document.getElementById('cr-break-graveyard').checked,
+      };
+      const [r1, r2] = await Promise.all([
+        fetch(`${CONFIG.API_BASE}/config/punch-config`,        { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(punchBody) }),
+        fetch(`${CONFIG.API_BASE}/config/computation-rules`,   { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(rulesBody) }),
+      ]);
+      if (r1.ok && r2.ok) { status.textContent = 'Saved.'; setTimeout(() => { status.textContent = ''; }, 2000); }
+      else { status.textContent = 'Save failed.'; }
+    } catch (err) { status.textContent = 'Error: ' + err.message; }
+  });
+}
+
+/* ─── Holidays ───────────────────────────────────────────────── */
+async function loadHolidays() {
+  const company = document.getElementById('holiday-filter-company').value;
+  const year    = document.getElementById('holiday-filter-year').value;
+  const token   = getToken();
+  const tbody   = document.getElementById('holidays-tbody');
+  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:var(--space-lg);">Loading…</td></tr>';
+  try {
+    const params = new URLSearchParams();
+    if (company) params.set('company_id', company);
+    if (year)    params.set('year', year);
+    const res = await fetch(`${CONFIG.API_BASE}/holidays?${params}`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const { data } = await res.json();
+    if (!data || !data.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-disabled);padding:var(--space-lg);">No holidays found.</td></tr>'; return; }
+    tbody.innerHTML = data.map(h => `
+      <tr>
+        <td class="t-caption" style="font-family:var(--font-mono);">${formatDate(h.holiday_date)}</td>
+        <td>${h.holiday_name}</td>
+        <td><span class="tag ${h.holiday_type === 'regular' ? 'tag-error' : 'tag-warning'}">${h.holiday_type === 'regular' ? 'Regular' : 'Special'}</span></td>
+        <td class="t-caption">${h.company_id === 1 ? 'UTH' : 'SSH'}</td>
+        <td style="display:flex;gap:4px;">
+          <button class="btn btn-ghost btn-sm" onclick="openEditHoliday(${JSON.stringify(h).replace(/"/g,'&quot;')})">Edit</button>
+          <button class="btn btn-ghost btn-sm" style="color:var(--warning);" onclick="confirmDeleteHoliday(${h.holiday_id},'${h.holiday_name}')">Del</button>
+        </td>
+      </tr>
+    `).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--warning);padding:var(--space-lg);">Error: ${err.message}</td></tr>`;
+  }
+}
+function setupHolidayModal() {
+  document.getElementById('holiday-filter-company').addEventListener('change', loadHolidays);
+  document.getElementById('holiday-filter-year').addEventListener('change', loadHolidays);
+  document.getElementById('btn-add-holiday').addEventListener('click', () => openAddHoliday());
+  document.getElementById('btn-close-holiday-modal').addEventListener('click', closeHolidayModal);
+  document.getElementById('btn-cancel-holiday').addEventListener('click', closeHolidayModal);
+  document.getElementById('btn-save-holiday').addEventListener('click', saveHoliday);
+  document.getElementById('btn-close-delete-holiday').addEventListener('click', () => document.getElementById('modal-delete-holiday').classList.add('hidden'));
+  document.getElementById('btn-cancel-delete-holiday').addEventListener('click', () => document.getElementById('modal-delete-holiday').classList.add('hidden'));
+  document.getElementById('btn-confirm-delete-holiday').addEventListener('click', doDeleteHoliday);
+}
+function openAddHoliday() {
+  editingHolidayId = null;
+  document.getElementById('modal-holiday-title').textContent = 'Add Holiday';
+  document.getElementById('holiday-edit-id').value = '';
+  document.getElementById('holiday-date').value = '';
+  document.getElementById('holiday-name').value = '';
+  document.getElementById('holiday-type').value = 'regular';
+  document.getElementById('holiday-company').value = '1';
+  document.getElementById('modal-holiday').classList.remove('hidden');
+}
+function openEditHoliday(h) {
+  editingHolidayId = h.holiday_id;
+  document.getElementById('modal-holiday-title').textContent = 'Edit Holiday';
+  document.getElementById('holiday-edit-id').value = h.holiday_id;
+  document.getElementById('holiday-date').value = h.holiday_date ? h.holiday_date.substring(0,10) : '';
+  document.getElementById('holiday-name').value = h.holiday_name;
+  document.getElementById('holiday-type').value = h.holiday_type;
+  document.getElementById('holiday-company').value = String(h.company_id);
+  document.getElementById('modal-holiday').classList.remove('hidden');
+}
+function closeHolidayModal() { document.getElementById('modal-holiday').classList.add('hidden'); }
+async function saveHoliday() {
+  const token = getToken();
+  const body = {
+    holiday_date: document.getElementById('holiday-date').value,
+    holiday_name: document.getElementById('holiday-name').value.trim(),
+    holiday_type: document.getElementById('holiday-type').value,
+    company_id:   parseInt(document.getElementById('holiday-company').value),
+  };
+  if (!body.holiday_date || !body.holiday_name) { alert('Date and name are required.'); return; }
+  const isEdit = !!editingHolidayId;
+  try {
+    const res = await fetch(isEdit ? `${CONFIG.API_BASE}/holidays/${editingHolidayId}` : `${CONFIG.API_BASE}/holidays`,
+      { method: isEdit ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
+    if (!res.ok) { const e = await res.json(); throw new Error(e.error || `HTTP ${res.status}`); }
+    closeHolidayModal();
+    loadHolidays();
+  } catch (err) { alert('Failed to save: ' + err.message); }
+}
+function confirmDeleteHoliday(id, name) {
+  deletingHolidayId = id;
+  document.getElementById('delete-holiday-msg').textContent = `Remove "${name}"? This cannot be undone.`;
+  document.getElementById('modal-delete-holiday').classList.remove('hidden');
+}
+async function doDeleteHoliday() {
+  const token = getToken();
+  try {
+    const res = await fetch(`${CONFIG.API_BASE}/holidays/${deletingHolidayId}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    document.getElementById('modal-delete-holiday').classList.add('hidden');
+    loadHolidays();
+  } catch (err) { alert('Failed to delete: ' + err.message); }
+}
+
+/* ─── Notifications ──────────────────────────────────────────── */
+function renderNotifications() {
+  const container = document.getElementById('notif-list');
+  container.innerHTML = NOTIF_EVENTS.map(ev => `
+    <div class="toggle-row" style="padding:var(--space-sm) 0;border-bottom:1px solid var(--border);">
+      <div class="toggle-info" style="flex:1;">
+        <div class="toggle-label">${ev.label}</div>
+        <div class="toggle-hint" style="display:flex;gap:4px;margin-top:4px;">
+          ${ev.roles.map(r => `<span class="tag tag-neutral">${r}</span>`).join('')}
+        </div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" class="notif-toggle" data-code="${ev.code}" checked/>
+        <span class="toggle-track"></span>
+      </label>
+    </div>
+  `).join('');
+}
+
+/* ─── Users ──────────────────────────────────────────────────── */
+async function loadUsers() {
+  const token  = getToken();
+  const role   = document.getElementById('user-filter-role').value;
+  const status = document.getElementById('user-filter-status').value;
+  const tbody  = document.getElementById('users-tbody');
+  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:var(--space-lg);">Loading…</td></tr>';
+  try {
+    const params = new URLSearchParams();
+    if (role)       params.set('role', role);
+    if (status !== '') params.set('is_active', status);
+    const res = await fetch(`${CONFIG.API_BASE}/auth/users?${params}`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const { data } = await res.json();
+    if (!data || !data.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-disabled);padding:var(--space-lg);">No users found.</td></tr>'; return; }
+    tbody.innerHTML = data.map(u => `
+      <tr>
+        <td style="font-family:var(--font-mono);font-size:13px;">${u.username}</td>
+        <td><span class="tag tag-neutral">${u.role}</span></td>
+        <td class="t-caption">${u.company_id === 1 ? 'UTH' : u.company_id === 2 ? 'SSH' : '—'}</td>
+        <td class="t-caption">${u.subdept_name || '— all —'}</td>
+        <td class="t-caption">${u.last_login ? formatDateTime(u.last_login) : 'Never'}</td>
+        <td><span class="tag ${u.is_active ? 'tag-active' : 'tag-error'}">${u.is_active ? 'Active' : 'Inactive'}</span></td>
+        <td style="display:flex;gap:4px;">
+          <button class="btn btn-ghost btn-sm" onclick="openEditUser(${JSON.stringify(u).replace(/"/g,'&quot;')})">Edit</button>
+          ${u.is_active
+            ? `<button class="btn btn-ghost btn-sm" style="color:var(--warning);" onclick="confirmDeactivateUser(${u.user_acc_id},'${u.username}')">Deactivate</button>`
+            : `<button class="btn btn-ghost btn-sm" onclick="reactivateUser(${u.user_acc_id})">Reactivate</button>`}
+        </td>
+      </tr>
+    `).join('');
+  } catch (err) { tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--warning);padding:var(--space-lg);">Error: ${err.message}</td></tr>`; }
+}
+function setupUserModal() {
+  document.getElementById('user-filter-role').addEventListener('change', loadUsers);
+  document.getElementById('user-filter-status').addEventListener('change', loadUsers);
+  document.getElementById('btn-add-user').addEventListener('click', () => openAddUser());
+  document.getElementById('btn-close-user-modal').addEventListener('click', closeUserModal);
+  document.getElementById('btn-cancel-user').addEventListener('click', closeUserModal);
+  document.getElementById('btn-save-user').addEventListener('click', saveUser);
+  document.getElementById('btn-close-deactivate-user').addEventListener('click', () => document.getElementById('modal-deactivate-user').classList.add('hidden'));
+  document.getElementById('btn-cancel-deactivate-user').addEventListener('click', () => document.getElementById('modal-deactivate-user').classList.add('hidden'));
+  document.getElementById('btn-confirm-deactivate-user').addEventListener('click', doDeactivateUser);
+}
+function openAddUser() {
+  editingUserId = null;
+  document.getElementById('modal-user-title').textContent = 'Add User';
+  ['user-edit-id','user-username','user-password'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('user-role').value = '';
+  document.getElementById('user-company').value = '1';
+  document.getElementById('modal-user').classList.remove('hidden');
+}
+function openEditUser(u) {
+  editingUserId = u.user_acc_id;
+  document.getElementById('modal-user-title').textContent = 'Edit User';
+  document.getElementById('user-edit-id').value  = u.user_acc_id;
+  document.getElementById('user-username').value = u.username;
+  document.getElementById('user-password').value = '';
+  document.getElementById('user-role').value     = u.role;
+  document.getElementById('user-company').value  = String(u.company_id);
+  document.getElementById('modal-user').classList.remove('hidden');
+}
+function closeUserModal() { document.getElementById('modal-user').classList.add('hidden'); }
+async function saveUser() {
+  const token = getToken();
+  const body = {
+    username:   document.getElementById('user-username').value.trim(),
+    role:       document.getElementById('user-role').value,
+    company_id: parseInt(document.getElementById('user-company').value),
+  };
+  const pw = document.getElementById('user-password').value;
+  if (pw) body.password = pw;
+  if (!body.username || !body.role) { alert('Username and role are required.'); return; }
+  if (!editingUserId && !pw) { alert('Password is required for new users.'); return; }
+  const isEdit = !!editingUserId;
+  try {
+    const res = await fetch(isEdit ? `${CONFIG.API_BASE}/auth/users/${editingUserId}` : `${CONFIG.API_BASE}/auth/users`,
+      { method: isEdit ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
+    if (!res.ok) { const e = await res.json(); throw new Error(e.error || `HTTP ${res.status}`); }
+    closeUserModal();
+    loadUsers();
+  } catch (err) { alert('Failed to save: ' + err.message); }
+}
+function confirmDeactivateUser(id, username) {
+  deactivatingUserId = id;
+  document.getElementById('deactivate-user-msg').textContent = `Deactivate "${username}"? They will not be able to log in.`;
+  document.getElementById('modal-deactivate-user').classList.remove('hidden');
+}
+async function doDeactivateUser() {
+  const token = getToken();
+  try {
+    const res = await fetch(`${CONFIG.API_BASE}/auth/users/${deactivatingUserId}`,
+      { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ is_active: false }) });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    document.getElementById('modal-deactivate-user').classList.add('hidden');
+    loadUsers();
+  } catch (err) { alert('Failed: ' + err.message); }
+}
+async function reactivateUser(id) {
+  const token = getToken();
+  if (!confirm('Reactivate this user?')) return;
+  try {
+    const res = await fetch(`${CONFIG.API_BASE}/auth/users/${id}`,
+      { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ is_active: true }) });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    loadUsers();
+  } catch (err) { alert('Failed: ' + err.message); }
+}
+
+/* ─── Org Structure ──────────────────────────────────────────── */
+async function loadOrgDepartments() {
+  const token = getToken();
+  const list  = document.getElementById('dept-list');
+  list.innerHTML = '<div class="skeleton-row mb-sm"></div>';
+  try {
+    const res = await fetch(`${CONFIG.API_BASE}/org/departments`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const { data } = await res.json();
+    if (!data || !data.length) { list.innerHTML = '<div class="t-caption t-secondary">No departments found.</div>'; return; }
+    list.innerHTML = data.map(d => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px var(--space-sm);border-radius:6px;cursor:pointer;margin-bottom:2px;${selectedDeptId===d.department_id?'background:var(--surface-raised);':''}"
+           onclick="selectDept(${d.department_id})">
+        <span class="t-caption">${d.department_name}</span>
+        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openOrgEdit('dept',${d.department_id},'${d.department_name}')">Edit</button>
+      </div>`).join('');
+  } catch (err) { list.innerHTML = `<div class="t-caption" style="color:var(--warning);">Error: ${err.message}</div>`; }
+}
+async function selectDept(deptId) {
+  selectedDeptId = deptId; selectedSubdeptId = null;
+  document.getElementById('btn-add-subdept').disabled = false;
+  document.getElementById('position-list').innerHTML = '<div class="t-caption t-secondary" style="padding:var(--space-sm) 0;">Select a subdepartment first.</div>';
+  document.getElementById('btn-add-position').disabled = true;
+  loadOrgDepartments();
+  const token = getToken();
+  const list  = document.getElementById('subdept-list');
+  list.innerHTML = '<div class="skeleton-row mb-sm"></div>';
+  try {
+    const res = await fetch(`${CONFIG.API_BASE}/org/subdepartments?department_id=${deptId}`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const { data } = await res.json();
+    if (!data || !data.length) { list.innerHTML = '<div class="t-caption t-secondary">No subdepartments.</div>'; return; }
+    list.innerHTML = data.map(s => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px var(--space-sm);border-radius:6px;cursor:pointer;margin-bottom:2px;${selectedSubdeptId===s.subdept_id?'background:var(--surface-raised);':''}"
+           onclick="selectSubdept(${s.subdept_id})">
+        <span class="t-caption">${s.subdept_name}</span>
+        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openOrgEdit('subdept',${s.subdept_id},'${s.subdept_name}')">Edit</button>
+      </div>`).join('');
+  } catch (err) { list.innerHTML = `<div class="t-caption" style="color:var(--warning);">Error: ${err.message}</div>`; }
+}
+async function selectSubdept(subdeptId) {
+  selectedSubdeptId = subdeptId;
+  document.getElementById('btn-add-position').disabled = false;
+  const token = getToken();
+  const list  = document.getElementById('position-list');
+  list.innerHTML = '<div class="skeleton-row mb-sm"></div>';
+  try {
+    const res = await fetch(`${CONFIG.API_BASE}/org/positions?subdept_id=${subdeptId}`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const { data } = await res.json();
+    if (!data || !data.length) { list.innerHTML = '<div class="t-caption t-secondary">No positions.</div>'; return; }
+    list.innerHTML = data.map(p => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px var(--space-sm);border-radius:6px;margin-bottom:2px;">
+        <span class="t-caption">${p.position_name}</span>
+        <button class="btn btn-ghost btn-sm" onclick="openOrgEdit('position',${p.position_id},'${p.position_name}')">Edit</button>
+      </div>`).join('');
+  } catch (err) { list.innerHTML = `<div class="t-caption" style="color:var(--warning);">Error: ${err.message}</div>`; }
+}
+function setupOrgActions() {
+  document.getElementById('btn-add-dept').addEventListener('click', () => openOrgAdd('dept'));
+  document.getElementById('btn-add-subdept').addEventListener('click', () => openOrgAdd('subdept'));
+  document.getElementById('btn-add-position').addEventListener('click', () => openOrgAdd('position'));
+  document.getElementById('btn-close-org-modal').addEventListener('click', closeOrgModal);
+  document.getElementById('btn-cancel-org').addEventListener('click', closeOrgModal);
+  document.getElementById('btn-save-org').addEventListener('click', saveOrg);
+}
+function openOrgAdd(type) {
+  orgEditingId = null; orgType = type;
+  const labels = { dept: 'Department', subdept: 'Subdepartment', position: 'Position' };
+  document.getElementById('modal-org-title').textContent = 'Add ' + labels[type];
+  document.getElementById('org-edit-id').value = '';
+  document.getElementById('org-type').value = type;
+  document.getElementById('org-parent-id').value = type === 'subdept' ? (selectedDeptId||'') : type === 'position' ? (selectedSubdeptId||'') : '';
+  document.getElementById('org-name').value = '';
+  document.getElementById('org-name-label').innerHTML = labels[type] + ' Name <span style="color:var(--warning)">*</span>';
+  document.getElementById('org-company-group').classList.toggle('hidden', type !== 'dept');
+  document.getElementById('modal-org').classList.remove('hidden');
+}
+function openOrgEdit(type, id, name) {
+  orgEditingId = id; orgType = type;
+  const labels = { dept: 'Department', subdept: 'Subdepartment', position: 'Position' };
+  document.getElementById('modal-org-title').textContent = 'Edit ' + labels[type];
+  document.getElementById('org-edit-id').value = id;
+  document.getElementById('org-type').value = type;
+  document.getElementById('org-name').value = name;
+  document.getElementById('org-name-label').innerHTML = labels[type] + ' Name <span style="color:var(--warning)">*</span>';
+  document.getElementById('org-company-group').classList.add('hidden');
+  document.getElementById('modal-org').classList.remove('hidden');
+}
+function closeOrgModal() { document.getElementById('modal-org').classList.add('hidden'); }
+async function saveOrg() {
+  const token = getToken();
+  const type  = document.getElementById('org-type').value;
+  const name  = document.getElementById('org-name').value.trim();
+  const parentId = document.getElementById('org-parent-id').value;
+  if (!name) { alert('Name is required.'); return; }
+  const endpoints = { dept: 'departments', subdept: 'subdepartments', position: 'positions' };
+  const body = { name };
+  if (!orgEditingId) {
+    if (type === 'dept')     body.company_id    = parseInt(document.getElementById('org-company').value);
+    if (type === 'subdept')  body.department_id = parseInt(parentId);
+    if (type === 'position') body.subdept_id    = parseInt(parentId);
+  }
+  try {
+    const res = await fetch(
+      orgEditingId ? `${CONFIG.API_BASE}/org/${endpoints[type]}/${orgEditingId}` : `${CONFIG.API_BASE}/org/${endpoints[type]}`,
+      { method: orgEditingId ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(body) }
+    );
+    if (!res.ok) { const e = await res.json(); throw new Error(e.error || `HTTP ${res.status}`); }
+    closeOrgModal();
+    if (type === 'dept') loadOrgDepartments();
+    else if (type === 'subdept' && selectedDeptId) selectDept(selectedDeptId);
+    else if (type === 'position' && selectedSubdeptId) selectSubdept(selectedSubdeptId);
+  } catch (err) { alert('Failed to save: ' + err.message); }
+}
+
+/* ─── Devices ────────────────────────────────────────────────── */
+async function loadDevices() {
+  const token = getToken();
+  const tbody = document.getElementById('devices-tbody');
+  tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:var(--space-lg);">Loading…</td></tr>';
+  try {
+    const res = await fetch(`${CONFIG.API_BASE}/devices`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const { data } = await res.json();
+    if (!data || !data.length) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text-disabled);padding:var(--space-lg);">No devices registered.</td></tr>'; return; }
+    tbody.innerHTML = data.map(d => `
+      <tr>
+        <td style="font-family:var(--font-mono);font-size:12px;">${d.device_code}</td>
+        <td class="t-caption">${d.device_name}</td>
+        <td style="font-family:var(--font-mono);font-size:12px;">${d.ip_address}</td>
+        <td style="font-family:var(--font-mono);font-size:12px;">${d.port||4370}</td>
+        <td style="font-family:var(--font-mono);font-size:12px;">${d.serial_number}</td>
+        <td class="t-caption">${d.company_id === 1 ? 'UTH' : 'SSH'}</td>
+        <td><span class="tag ${d.status==='online'?'tag-active':d.status==='error'?'tag-error':'tag-warning'}">${d.status}</span></td>
+        <td><button class="btn btn-ghost btn-sm" onclick="openEditDevice(${JSON.stringify(d).replace(/"/g,'&quot;')})">Edit</button></td>
+      </tr>`).join('');
+  } catch (err) { tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--warning);padding:var(--space-lg);">Error: ${err.message}</td></tr>`; }
+}
+function setupDeviceModal() {
+  document.getElementById('btn-refresh-devices').addEventListener('click', loadDevices);
+  document.getElementById('btn-close-device-modal').addEventListener('click', closeDeviceModal);
+  document.getElementById('btn-cancel-device').addEventListener('click', closeDeviceModal);
+  document.getElementById('btn-save-device').addEventListener('click', saveDevice);
+}
+function openEditDevice(d) {
+  editingDeviceId = d.device_id;
+  document.getElementById('device-edit-id').value  = d.device_id;
+  document.getElementById('device-name').value     = d.device_name;
+  document.getElementById('device-ip').value       = d.ip_address;
+  document.getElementById('device-port').value     = d.port || 4370;
+  document.getElementById('device-serial').value   = d.serial_number;
+  document.getElementById('modal-device').classList.remove('hidden');
+}
+function closeDeviceModal() { document.getElementById('modal-device').classList.add('hidden'); }
+async function saveDevice() {
+  const token = getToken();
+  const body = {
+    ip_address:    document.getElementById('device-ip').value.trim(),
+    port:          parseInt(document.getElementById('device-port').value),
+    serial_number: document.getElementById('device-serial').value.trim(),
+  };
+  if (!body.ip_address || !body.port) { alert('IP and port are required.'); return; }
+  try {
+    const res = await fetch(`${CONFIG.API_BASE}/devices/${editingDeviceId}`,
+      { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
+    if (!res.ok) { const e = await res.json(); throw new Error(e.error || `HTTP ${res.status}`); }
+    closeDeviceModal();
+    loadDevices();
+  } catch (err) { alert('Failed to save: ' + err.message); }
+}
+
+/* ─── Company Setup ──────────────────────────────────────────── */
+async function loadCompanyDetails() {
+  const token = getToken();
+  try {
+    const res = await fetch(`${CONFIG.API_BASE}/config/companies`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) return;
+    const { data } = await res.json();
+    if (!data) return;
+    const uth = data.find(c => c.company_id === 1);
+    const ssh = data.find(c => c.company_id === 2);
+    if (uth) {
+      document.getElementById('uth-name').value    = uth.company_name    || '';
+      document.getElementById('uth-tin').value     = uth.tin             || '';
+      document.getElementById('uth-dole').value    = uth.dole_reg_number || '';
+      document.getElementById('uth-address').value = uth.address         || '';
+      document.getElementById('uth-contact').value = uth.contact_number  || '';
+    }
+    if (ssh) {
+      document.getElementById('ssh-name').value    = ssh.company_name    || '';
+      document.getElementById('ssh-tin').value     = ssh.tin             || '';
+      document.getElementById('ssh-dole').value    = ssh.dole_reg_number || '';
+      document.getElementById('ssh-address').value = ssh.address         || '';
+      document.getElementById('ssh-contact').value = ssh.contact_number  || '';
+    }
+  } catch (err) { console.error('Failed to load company details:', err); }
+}
+function setupCompanySave() {
+  document.getElementById('btn-save-uth').addEventListener('click', () => saveCompany(1));
+  document.getElementById('btn-save-ssh').addEventListener('click', () => saveCompany(2));
+}
+async function saveCompany(companyId) {
+  const token  = getToken();
+  const prefix = companyId === 1 ? 'uth' : 'ssh';
+  const body = {
+    company_name:    document.getElementById(`${prefix}-name`).value.trim(),
+    tin:             document.getElementById(`${prefix}-tin`).value.trim(),
+    dole_reg_number: document.getElementById(`${prefix}-dole`).value.trim(),
+    address:         document.getElementById(`${prefix}-address`).value.trim(),
+    contact_number:  document.getElementById(`${prefix}-contact`).value.trim(),
+  };
+  try {
+    const res = await fetch(`${CONFIG.API_BASE}/config/companies/${companyId}`,
+      { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
+    if (!res.ok) { const e = await res.json(); throw new Error(e.error || `HTTP ${res.status}`); }
+    alert(`${companyId === 1 ? 'UTH' : 'SSH'} saved.`);
+  } catch (err) { alert('Failed to save: ' + err.message); }
+}
+
+/* ─── Cutoff Configuration ───────────────────────────────────── */
+async function loadCutoffs() {
+  const token   = getToken();
+  const company = document.getElementById('cutoff-filter-company').value;
+  const year    = document.getElementById('cutoff-filter-year').value;
+  const tbody   = document.getElementById('cutoffs-tbody');
+  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:var(--space-lg);">Loading…</td></tr>';
+  try {
+    const params = new URLSearchParams();
+    if (company) params.set('company_id', company);
+    if (year)    params.set('year', year);
+    const res = await fetch(`${CONFIG.API_BASE}/config/cutoffs?${params}`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const { data } = await res.json();
+    if (!data || !data.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-disabled);padding:var(--space-lg);">No cutoffs found.</td></tr>'; return; }
+    tbody.innerHTML = data.map(c => `
+      <tr>
+        <td class="t-caption">${c.period_label}</td>
+        <td style="font-family:var(--font-mono);font-size:12px;">${formatDate(c.start_date)}</td>
+        <td style="font-family:var(--font-mono);font-size:12px;">${formatDate(c.end_date)}</td>
+        <td class="t-caption">${c.company_id === 1 ? 'UTH' : 'SSH'}</td>
+        <td><span class="tag ${c.is_active ? 'tag-active' : 'tag-neutral'}">${c.is_active ? 'Active' : 'Past'}</span></td>
+      </tr>`).join('');
+  } catch (err) { tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--warning);padding:var(--space-lg);">Error: ${err.message}</td></tr>`; }
+}
+function setupCutoffActions() {
+  document.getElementById('cutoff-filter-company').addEventListener('change', loadCutoffs);
+  document.getElementById('cutoff-filter-year').addEventListener('change', loadCutoffs);
+  document.getElementById('btn-refresh-cutoffs').addEventListener('click', loadCutoffs);
+  document.getElementById('btn-generate-cutoffs').addEventListener('click', generateCutoffs);
+  document.getElementById('btn-save-cutoff-settings').addEventListener('click', () => alert('Cutoff cycle settings saved (API integration pending).'));
+}
+async function generateCutoffs() {
+  const token   = getToken();
+  const month   = parseInt(document.getElementById('gen-month').value);
+  const year    = parseInt(document.getElementById('gen-year').value);
+  const company = document.getElementById('gen-company').value;
+  const status  = document.getElementById('gen-status');
+  status.textContent = 'Generating…';
+  try {
+    const body = { through_month: month, through_year: year };
+    if (company !== 'both') body.company_id = parseInt(company);
+    const res = await fetch(`${CONFIG.API_BASE}/config/cutoffs/generate`,
+      { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
+    if (!res.ok) { const e = await res.json(); throw new Error(e.error || `HTTP ${res.status}`); }
+    const { data } = await res.json();
+    status.textContent = `Done — ${data?.generated ?? 0} periods created.`;
+    loadCutoffs();
+  } catch (err) { status.textContent = 'Error: ' + err.message; }
+}
+
+/* ─── System Config ──────────────────────────────────────────── */
+async function loadSystemConfig() {
+  const token = getToken();
+  try {
+    const res = await fetch(`${CONFIG.API_BASE}/config/system`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) return;
+    const { data } = await res.json();
+    if (!data) return;
+    document.getElementById('sys-session-ttl').value        = data.session_ttl_hours ?? 8;
+    document.getElementById('sys-audit-retention').value    = data.audit_retention_days ?? 2555;
+    document.getElementById('sys-missed-punch-buffer').value = data.missed_punch_detection_buffer_minutes ?? 30;
+    loadBootstrapStatus(data);
+  } catch (err) { console.error('Failed to load system config:', err); }
+}
+function loadBootstrapStatus(data) {
+  const block = document.getElementById('bootstrap-status-block');
+  const btn   = document.getElementById('btn-deactivate-bootstrap');
+  if (data && data.bootstrap_active === false) {
+    block.innerHTML = '<span class="tag tag-neutral">Bootstrap account is already deactivated.</span>';
+    btn.disabled = true;
+  } else {
+    block.innerHTML = '<span class="tag tag-warning">Bootstrap account is ACTIVE.</span>';
+    btn.disabled = false;
+  }
+}
+function setupSystemSave() {
+  document.getElementById('btn-save-system').addEventListener('click', async () => {
+    const token  = getToken();
+    const status = document.getElementById('sys-save-status');
+    status.textContent = 'Saving…';
+    const body = {
+      session_ttl_hours:                        parseInt(document.getElementById('sys-session-ttl').value),
+      audit_retention_days:                     parseInt(document.getElementById('sys-audit-retention').value),
+      missed_punch_detection_buffer_minutes:    parseInt(document.getElementById('sys-missed-punch-buffer').value),
+    };
+    try {
+      const res = await fetch(`${CONFIG.API_BASE}/config/system`,
+        { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      status.textContent = 'Saved.';
+      setTimeout(() => { status.textContent = ''; }, 2000);
+    } catch (err) { status.textContent = 'Error: ' + err.message; }
+  });
+}
+function setupBootstrapDeactivate() {
+  document.getElementById('btn-deactivate-bootstrap').addEventListener('click', () => {
+    document.getElementById('bootstrap-confirm-input').value = '';
+    document.getElementById('btn-confirm-bootstrap').disabled = true;
+    document.getElementById('modal-bootstrap-confirm').classList.remove('hidden');
+  });
+  document.getElementById('bootstrap-confirm-input').addEventListener('input', function() {
+    document.getElementById('btn-confirm-bootstrap').disabled = this.value !== 'CONFIRM';
+  });
+  document.getElementById('btn-close-bootstrap-modal').addEventListener('click', () => document.getElementById('modal-bootstrap-confirm').classList.add('hidden'));
+  document.getElementById('btn-cancel-bootstrap').addEventListener('click', () => document.getElementById('modal-bootstrap-confirm').classList.add('hidden'));
+  document.getElementById('btn-confirm-bootstrap').addEventListener('click', async () => {
+    const token = getToken();
+    try {
+      const res = await fetch(`${CONFIG.API_BASE}/config/bootstrap/deactivate`,
+        { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      document.getElementById('modal-bootstrap-confirm').classList.add('hidden');
+      document.getElementById('bootstrap-status-block').innerHTML = '<span class="tag tag-neutral">Bootstrap account deactivated.</span>';
+      document.getElementById('btn-deactivate-bootstrap').disabled = true;
+    } catch (err) { alert('Failed: ' + err.message); }
+  });
+}
+
+/* ─── Helpers ────────────────────────────────────────────────── */
+function getToken() {
+  const u = localStorage.getItem('hris_user');
+  return u ? JSON.parse(u).token : '';
+}
+function formatDate(val) {
+  if (!val) return '—';
+  return new Date(val).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+function formatDateTime(val) {
+  if (!val) return '—';
+  return new Date(val).toLocaleString('en-PH', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+</script>
+</body>
+</html>

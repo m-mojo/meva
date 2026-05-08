@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Reports — MINERVA HRIS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&family=Space+Mono:wght@400;700&family=Doto:wght@100..900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/css/shared.css"/>
+</head>
+<body>
+<div id="app">
+  <nav id="sidebar"></nav>
+  <div id="main">
+    <header id="topbar"></header>
+    <main id="page-content" class="page-content">
+
+      <!-- Page Header -->
+      <div class="page-header mb-lg">
+        <div>
+          <div class="page-title">Reports</div>
+          <div class="page-subtitle">Timekeeping &amp; Attendance Reports</div>
+        </div>
+        <div class="page-actions" id="page-actions"></div>
+      </div>
+
+      <!-- View-only banner for coord/admin -->
+      <div id="banner-viewonly" class="view-only-banner hidden">View Only — Export is available to HR Admin and Super Admin only.</div>
+
+      <!-- Global Filters -->
+      <div class="filter-bar mb-lg">
+        <select class="filter-select" id="global-company">
+          <option value="">All Companies</option>
+          <option value="UTH">UTH</option>
+          <option value="SSH">SSH</option>
+        </select>
+        <select class="filter-select" id="global-cutoff">
+          <option value="">— Select Cutoff —</option>
+        </select>
+        <div class="filter-spacer"></div>
+        <span class="t-caption" id="cutoff-label" style="font-family:var(--font-mono);color:var(--text-secondary);"></span>
+      </div>
+
+      <!-- Report Cards -->
+      <div class="grid-2 mb-lg">
+
+        <!-- 1. Timekeeping Summary -->
+        <div class="card" id="card-timekeeping">
+          <div class="card-header">
+            <div class="card-title">Timekeeping Summary</div>
+          </div>
+          <div class="card-body">
+            <p class="t-secondary mb-md">Per-employee timekeeping for the selected cutoff. Includes hours worked, late, undertime, OT, and ND.</p>
+            <div class="filter-bar" style="padding:0;gap:var(--space-sm);margin-bottom:var(--space-md);">
+              <select class="filter-select" id="tk-company">
+                <option value="">All Companies</option>
+                <option value="UTH">UTH</option>
+                <option value="SSH">SSH</option>
+              </select>
+              <select class="filter-select" id="tk-cutoff">
+                <option value="">— Cutoff —</option>
+              </select>
+            </div>
+            <div style="display:flex;gap:var(--space-sm);flex-wrap:wrap;">
+              <button class="btn btn-secondary btn-sm" onclick="previewReport('timekeeping')">Preview</button>
+              <button class="btn btn-primary btn-sm export-btn" data-report="timekeeping" data-format="pdf">Export PDF</button>
+              <button class="btn btn-secondary btn-sm export-btn" data-report="timekeeping" data-format="excel">Export Excel</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Attendance Summary -->
+        <div class="card" id="card-attendance">
+          <div class="card-header">
+            <div class="card-title">Attendance Summary</div>
+          </div>
+          <div class="card-body">
+            <p class="t-secondary mb-md">Punch-in / punch-out log per employee for a date range. Raw biometric data with direction and reconciliation status.</p>
+            <div class="filter-bar" style="padding:0;gap:var(--space-sm);margin-bottom:var(--space-md);">
+              <input class="filter-input" type="date" id="att-from" style="max-width:140px;"/>
+              <span class="t-caption">to</span>
+              <input class="filter-input" type="date" id="att-to"   style="max-width:140px;"/>
+            </div>
+            <div style="display:flex;gap:var(--space-sm);flex-wrap:wrap;">
+              <button class="btn btn-secondary btn-sm" onclick="previewReport('attendance')">Preview</button>
+              <button class="btn btn-primary btn-sm export-btn" data-report="attendance" data-format="pdf">Export PDF</button>
+              <button class="btn btn-secondary btn-sm export-btn" data-report="attendance" data-format="excel">Export Excel</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Payroll Data View -->
+        <div class="card" id="card-payroll">
+          <div class="card-header">
+            <div class="card-title">Payroll Data View</div>
+          </div>
+          <div class="card-body">
+            <p class="t-secondary mb-md">Net hours, deductions, and additionals per employee per cutoff. Payroll-ready output.</p>
+            <div class="filter-bar" style="padding:0;gap:var(--space-sm);margin-bottom:var(--space-md);">
+              <select class="filter-select" id="pay-company">
+                <option value="">All Companies</option>
+                <option value="UTH">UTH</option>
+                <option value="SSH">SSH</option>
+              </select>
+              <select class="filter-select" id="pay-cutoff">
+                <option value="">— Cutoff —</option>
+              </select>
+            </div>
+            <div style="display:flex;gap:var(--space-sm);flex-wrap:wrap;">
+              <button class="btn btn-secondary btn-sm" onclick="previewReport('payroll')">Preview</button>
+              <button class="btn btn-primary btn-sm export-btn" data-report="payroll" data-format="pdf">Export PDF</button>
+              <button class="btn btn-secondary btn-sm export-btn" data-report="payroll" data-format="excel">Export Excel</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Leave Summary -->
+        <div class="card" id="card-leave">
+          <div class="card-header">
+            <div class="card-title">Leave Summary</div>
+          </div>
+          <div class="card-body">
+            <p class="t-secondary mb-md">VL / SL usage per employee. Balance snapshot and leave history per cutoff or calendar year.</p>
+            <div class="filter-bar" style="padding:0;gap:var(--space-sm);margin-bottom:var(--space-md);">
+              <select class="filter-select" id="lv-company">
+                <option value="">All Companies</option>
+                <option value="UTH">UTH</option>
+                <option value="SSH">SSH</option>
+              </select>
+              <input class="filter-input" type="number" id="lv-year" placeholder="Year" style="max-width:100px;"
+                     value="2026"/>
+            </div>
+            <div style="display:flex;gap:var(--space-sm);flex-wrap:wrap;">
+              <button class="btn btn-secondary btn-sm" onclick="previewReport('leave')">Preview</button>
+              <button class="btn btn-primary btn-sm export-btn" data-report="leave" data-format="pdf">Export PDF</button>
+              <button class="btn btn-secondary btn-sm export-btn" data-report="leave" data-format="excel">Export Excel</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. DOD Report -->
+        <div class="card" id="card-dod">
+          <div class="card-header">
+            <div class="card-title">DOD Report</div>
+          </div>
+          <div class="card-body">
+            <p class="t-secondary mb-md">Day-off with duty occurrences per cutoff. Includes pay classification and approval status.</p>
+            <div class="filter-bar" style="padding:0;gap:var(--space-sm);margin-bottom:var(--space-md);">
+              <select class="filter-select" id="dod-company">
+                <option value="">All Companies</option>
+                <option value="UTH">UTH</option>
+                <option value="SSH">SSH</option>
+              </select>
+              <select class="filter-select" id="dod-cutoff">
+                <option value="">— Cutoff —</option>
+              </select>
+            </div>
+            <div style="display:flex;gap:var(--space-sm);flex-wrap:wrap;">
+              <button class="btn btn-secondary btn-sm" onclick="previewReport('dod')">Preview</button>
+              <button class="btn btn-primary btn-sm export-btn" data-report="dod" data-format="pdf">Export PDF</button>
+              <button class="btn btn-secondary btn-sm export-btn" data-report="dod" data-format="excel">Export Excel</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 6. Employee Masterlist Export (hr/super_admin only) -->
+        <div class="card" id="card-masterlist">
+          <div class="card-header">
+            <div class="card-title">Employee Masterlist</div>
+            <span class="tag tag-neutral" style="font-size:10px;">HR / Super Admin</span>
+          </div>
+          <div class="card-body">
+            <p class="t-secondary mb-md">Full 201 file export. Includes all active and inactive employees with employment details.</p>
+            <div class="filter-bar" style="padding:0;gap:var(--space-sm);margin-bottom:var(--space-md);">
+              <select class="filter-select" id="ml-company">
+                <option value="">All Companies</option>
+                <option value="UTH">UTH</option>
+                <option value="SSH">SSH</option>
+              </select>
+              <select class="filter-select" id="ml-status">
+                <option value="">Active &amp; Inactive</option>
+                <option value="1">Active Only</option>
+                <option value="0">Inactive Only</option>
+              </select>
+            </div>
+            <div style="display:flex;gap:var(--space-sm);flex-wrap:wrap;">
+              <button class="btn btn-secondary btn-sm" onclick="previewReport('masterlist')">Preview</button>
+              <button class="btn btn-primary btn-sm export-btn" data-report="masterlist" data-format="pdf">Export PDF</button>
+              <button class="btn btn-secondary btn-sm export-btn" data-report="masterlist" data-format="excel">Export Excel</button>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /.grid-2 -->
+
+      <!-- Preview Pane -->
+      <div id="preview-pane" class="hidden">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title" id="preview-title">Preview</div>
+            <button class="btn btn-ghost btn-sm" onclick="closePreview()">Close</button>
+          </div>
+          <div class="card-body">
+            <div id="preview-loading">
+              <div class="skeleton-row"></div>
+              <div class="skeleton-row"></div>
+              <div class="skeleton-row"></div>
+            </div>
+            <div class="table-wrap" id="preview-table-wrap" style="display:none;">
+              <table>
+                <thead id="preview-thead"></thead>
+                <tbody id="preview-tbody"></tbody>
+              </table>
+            </div>
+            <div id="preview-empty" class="table-empty hidden">
+              <div class="empty-state">
+                <div class="empty-state-title">No Data</div>
+                <div class="empty-state-body">No records found for the selected filters.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script src="/js/config.js"></script>
+<script src="/js/auth.js"></script>
+<script>
+let currentUser = null;
+let canExport   = false;
+let cutoffs     = [];
+
+const REPORT_META = {
+  timekeeping: {
+    title: 'Timekeeping Summary',
+    endpoint: (filters) => `/reports/timekeeping/${filters.cutoff_id || ''}`,
+    headers: ['Employee', 'Company', 'Regular Hrs', 'Late (min)', 'Undertime (min)', 'OT Hrs', 'ND Hrs', 'Day'],
+    cols: r => [
+      r.employee_name || '—',
+      r.company_code  || '—',
+      r.regular_hours ?? '—',
+      r.late_minutes  ?? '—',
+      r.undertime_minutes ?? '—',
+      r.ot_hours      ?? '—',
+      r.nd_hours      ?? '—',
+      r.shift_date    ? fmtDate(r.shift_date) : '—',
+    ],
+  },
+  attendance: {
+    title: 'Attendance Summary',
+    endpoint: (filters) => `/reports/attendance?from=${filters.from||''}&to=${filters.to||''}`,
+    headers: ['Timestamp', 'Employee', 'Direction', 'Device', 'Reconciled'],
+    cols: r => [
+      fmtDateTime(r.record_time),
+      r.employee_name || r.device_user_id || '—',
+      r.new_state || r.state || '—',
+      r.device_id || '—',
+      r.reconciliation_status || '—',
+    ],
+  },
+  payroll: {
+    title: 'Payroll Data View',
+    endpoint: (filters) => `/reports/payroll/${filters.cutoff_id || ''}`,
+    headers: ['Employee', 'Company', 'Net Hours', 'Deductions', 'Additionals', 'Net Total'],
+    cols: r => [
+      r.employee_name   || '—',
+      r.company_code    || '—',
+      r.total_hours_day ?? '—',
+      fmtPeso(r.total_deductions),
+      fmtPeso(r.total_additionals),
+      fmtPeso(r.net_total),
+    ],
+  },
+  leave: {
+    title: 'Leave Summary',
+    endpoint: (filters) => `/reports/leave?year=${filters.year || new Date().getFullYear()}`,
+    headers: ['Employee', 'VL Balance', 'SL Balance', 'VL Used', 'SL Used'],
+    cols: r => [
+      r.employee_name || '—',
+      r.vl_total      ?? '—',
+      r.sl_total      ?? '—',
+      r.vl_used       ?? '—',
+      r.sl_used       ?? '—',
+    ],
+  },
+  dod: {
+    title: 'DOD Report',
+    endpoint: (filters) => `/reports/dod/${filters.cutoff_id || ''}`,
+    headers: ['Employee', 'Date', 'Hours', 'Pay Classification', 'Status'],
+    cols: r => [
+      r.employee_name  || '—',
+      fmtDate(r.shift_date),
+      r.total_hours_day ?? '—',
+      r.day_scenario   || '—',
+      r.classification_status || '—',
+    ],
+  },
+  masterlist: {
+    title: 'Employee Masterlist',
+    endpoint: () => `/employees`,
+    headers: ['Employee', 'Company', 'Position', 'Subdept', 'Status', 'Date Hired'],
+    cols: r => [
+      formatEmployeeName(r),
+      r.company_code  || '—',
+      r.position_name || '—',
+      r.subdept_name  || '—',
+      r.is_active ? 'Active' : 'Inactive',
+      fmtDate(r.date_hired),
+    ],
+  },
+};
+
+function getFiltersFor(report) {
+  const cutoffId = (document.getElementById(`${report[0]}-cutoff`) ||
+                    document.getElementById('global-cutoff'))?.value || '';
+  return {
+    cutoff_id: cutoffId,
+    company:   (document.getElementById(`${report[0]}-company`) ||
+                document.getElementById('global-company'))?.value || '',
+    from:      document.getElementById('att-from')?.value || '',
+    to:        document.getElementById('att-to')?.value   || '',
+    year:      document.getElementById('lv-year')?.value  || new Date().getFullYear(),
+  };
+}
+
+async function previewReport(report) {
+  const meta    = REPORT_META[report];
+  const pane    = document.getElementById('preview-pane');
+  const loading = document.getElementById('preview-loading');
+  const wrap    = document.getElementById('preview-table-wrap');
+  const empty   = document.getElementById('preview-empty');
+  const thead   = document.getElementById('preview-thead');
+  const tbody   = document.getElementById('preview-tbody');
+
+  pane.classList.remove('hidden');
+  document.getElementById('preview-title').textContent = meta.title + ' — Preview';
+  loading.style.display = '';
+  wrap.style.display    = 'none';
+  empty.classList.add('hidden');
+  pane.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  try {
+    const filters = getFiltersFor(report);
+    const url     = meta.endpoint(filters);
+    const data    = await apiFetch(url);
+    const rows    = data?.data || (Array.isArray(data) ? data : []);
+
+    loading.style.display = 'none';
+    if (!rows.length) {
+      empty.classList.remove('hidden');
+      return;
+    }
+    thead.innerHTML = `<tr>${meta.headers.map(h => `<th>${h}</th>`).join('')}</tr>`;
+    tbody.innerHTML = rows.map(r =>
+      `<tr>${meta.cols(r).map(c => `<td style="font-size:12px;">${c}</td>`).join('')}</tr>`
+    ).join('');
+    wrap.style.display = '';
+  } catch (err) {
+    loading.style.display = 'none';
+    tbody.innerHTML = `<tr><td colspan="${meta.headers.length}" class="t-caption" style="font-family:var(--font-mono);padding:var(--space-md) 0;">[ FAILED TO LOAD — ${err.message} ]</td></tr>`;
+    wrap.style.display = '';
+  }
+}
+
+function closePreview() {
+  document.getElementById('preview-pane').classList.add('hidden');
+}
+
+async function exportReport(report, format) {
+  const meta    = REPORT_META[report];
+  const filters = getFiltersFor(report);
+  const base    = meta.endpoint(filters);
+
+  try {
+    showToast(`Preparing ${format.toUpperCase()} export…`, 'info');
+    const url     = format === 'excel' ? `${base}/excel` : base;
+    const accept  = format === 'excel'
+      ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      : 'application/pdf';
+
+    const token = localStorage.getItem(CONFIG.TOKEN_KEY);
+    const res   = await fetch(CONFIG.API_BASE + url, {
+      headers: { Authorization: `Bearer ${token}`, Accept: accept },
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const blob     = await res.blob();
+    const ext      = format === 'excel' ? 'xlsx' : 'pdf';
+    const filename = `${report}_${new Date().toISOString().slice(0,10)}.${ext}`;
+    const a        = document.createElement('a');
+    a.href         = URL.createObjectURL(blob);
+    a.download     = filename;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    showToast(`${filename} downloaded.`, 'success');
+  } catch (err) {
+    showToast(err.message || 'Export failed.', 'error');
+  }
+}
+
+async function loadCutoffs() {
+  try {
+    const data = await apiFetch('/timekeeping/cutoffs');
+    cutoffs    = data?.data || [];
+    const selIds = ['global-cutoff','tk-cutoff','pay-cutoff','dod-cutoff'];
+    selIds.forEach(id => {
+      const sel = document.getElementById(id);
+      if (!sel) return;
+      sel.innerHTML = '<option value="">— Cutoff —</option>' +
+        cutoffs.map(c =>
+          `<option value="${c.cutoff_id}">${c.label || (fmtDate(c.start_date) + ' – ' + fmtDate(c.end_date))}</option>`
+        ).join('');
+    });
+    if (cutoffs.length) {
+      const label = document.getElementById('cutoff-label');
+      if (label) label.textContent = `Current: ${cutoffs[0]?.label || ''}`;
+    }
+  } catch { /* non-fatal */ }
+}
+
+function initPage(user) {
+  currentUser = user;
+  canExport   = ['super_admin', 'hr'].includes(user.role);
+
+  /* Role banner */
+  if (['coord', 'admin'].includes(user.role)) {
+    document.getElementById('banner-viewonly').classList.remove('hidden');
+  }
+
+  /* Hide masterlist card for non-HR */
+  if (!canExport) {
+    document.getElementById('card-masterlist').style.display = 'none';
+  }
+
+  /* Hide export buttons for view-only roles */
+  if (!canExport) {
+    document.querySelectorAll('.export-btn').forEach(btn => btn.classList.add('hidden'));
+  }
+
+  /* Export button wiring */
+  document.querySelectorAll('.export-btn').forEach(btn => {
+    btn.addEventListener('click', () => exportReport(btn.dataset.report, btn.dataset.format));
+  });
+
+  loadCutoffs();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const user = requireRole('super_admin', 'hr', 'coord', 'admin');
+  if (!user) return;
+  buildShell(user, 'reports', 'Reports');
+  initPage(user);
+});
+</script>
+</body>
+</html>

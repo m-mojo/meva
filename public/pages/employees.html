@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Employees — MINERVA HRIS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&family=Space+Mono:wght@400;700&family=Doto:wght@100..900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/css/shared.css"/>
+</head>
+<body>
+<div id="app">
+  <nav id="sidebar"></nav>
+  <div id="main">
+    <header id="topbar"></header>
+    <main id="page-content">
+
+      <!-- View-only banner (coord / it / admin) -->
+      <div class="view-only-banner hidden" id="view-only-banner">
+        VIEW ONLY — Contact HR to make changes
+      </div>
+
+      <!-- Page Header -->
+      <div class="page-header mb-lg">
+        <div>
+          <div class="page-title">Employees</div>
+          <div class="page-subtitle">Employee Masterlist</div>
+        </div>
+        <div class="page-actions" id="page-actions">
+          <!-- populated after role check -->
+        </div>
+      </div>
+
+      <!-- Filter Bar -->
+      <div class="filter-bar mb-md">
+        <input type="text" class="filter-input" id="filter-search" placeholder="Search by name, employee number…" style="min-width:260px;"/>
+        <div class="filter-sep"></div>
+        <select class="filter-select" id="filter-company">
+          <option value="">All Companies</option>
+          <option value="1">UTH</option>
+          <option value="2">SSH</option>
+        </select>
+        <select class="filter-select" id="filter-dept">
+          <option value="">All Departments</option>
+        </select>
+        <select class="filter-select" id="filter-status">
+          <option value="">All Status</option>
+          <option value="1">Active</option>
+          <option value="0">Inactive</option>
+        </select>
+        <select class="filter-select" id="filter-emp-type">
+          <option value="">All Types</option>
+        </select>
+        <div class="filter-spacer"></div>
+        <span class="t-caption" id="result-count" style="white-space:nowrap;">— employees</span>
+      </div>
+
+      <!-- Table Card -->
+      <div class="card mb-md">
+        <div class="card-body" style="padding:0;">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:40px;">#</th>
+                  <th>Employee Name</th>
+                  <th>Emp No</th>
+                  <th>Position</th>
+                  <th>Department</th>
+                  <th>Company</th>
+                  <th>Date Hired</th>
+                  <th>Type</th>
+                  <th>Status</th>
+                  <th>Biometric</th>
+                  <th style="width:120px;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="employee-tbody">
+                <!-- skeleton -->
+                <tr class="skeleton-row"><td colspan="11"><div class="skeleton skeleton-text"></div></td></tr>
+                <tr class="skeleton-row"><td colspan="11"><div class="skeleton skeleton-text"></div></td></tr>
+                <tr class="skeleton-row"><td colspan="11"><div class="skeleton skeleton-text"></div></td></tr>
+                <tr class="skeleton-row"><td colspan="11"><div class="skeleton skeleton-text"></div></td></tr>
+                <tr class="skeleton-row"><td colspan="11"><div class="skeleton skeleton-text"></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination" id="pagination" style="display:none;">
+        <span class="pagination-info" id="pagination-info"></span>
+        <div style="display:flex;gap:4px;align-items:center;" id="page-btns"></div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- ── Add / Edit Employee Modal ───────────────────────────────── -->
+<div class="modal-overlay" id="modal-employee">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-employee-title">Add Employee</div>
+      <button class="modal-close" onclick="closeModal('modal-employee')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-employee" autocomplete="off">
+        <input type="hidden" id="emp-id"/>
+        <div class="grid-2" style="gap:var(--space-md);">
+          <div class="form-group">
+            <label class="form-label">Last Name <span style="color:var(--accent)">*</span></label>
+            <input class="form-input" id="emp-last-name" required/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">First Name <span style="color:var(--accent)">*</span></label>
+            <input class="form-input" id="emp-first-name" required/>
+          </div>
+        </div>
+        <div class="grid-2" style="gap:var(--space-md);">
+          <div class="form-group">
+            <label class="form-label">Middle Name</label>
+            <input class="form-input" id="emp-middle-name"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Employee Number <span style="color:var(--accent)">*</span></label>
+            <input class="form-input" id="emp-number" required/>
+          </div>
+        </div>
+        <div class="grid-2" style="gap:var(--space-md);">
+          <div class="form-group">
+            <label class="form-label">Company <span style="color:var(--accent)">*</span></label>
+            <select class="form-select" id="emp-company" required>
+              <option value="">Select company…</option>
+              <option value="1">UTH</option>
+              <option value="2">SSH</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Position <span style="color:var(--accent)">*</span></label>
+            <select class="form-select" id="emp-position" required>
+              <option value="">Select position…</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid-2" style="gap:var(--space-md);">
+          <div class="form-group">
+            <label class="form-label">Date Hired <span style="color:var(--accent)">*</span></label>
+            <input class="form-input" id="emp-date-hired" type="date" required/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Employment Type <span style="color:var(--accent)">*</span></label>
+            <select class="form-select" id="emp-emp-type" required>
+              <option value="">Select type…</option>
+            </select>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-employee')">Cancel</button>
+      <button class="btn btn-primary" id="btn-save-employee">Save Employee</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Import Excel Modal ───────────────────────────────────────── -->
+<div class="modal-overlay" id="modal-import">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-header">
+      <div class="modal-title">Import Employees</div>
+      <button class="modal-close" onclick="closeModal('modal-import')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p class="t-secondary mb-md">Upload an Excel file (.xlsx) with employee data. The first row must be headers.</p>
+      <div class="form-group">
+        <label class="form-label">Excel File (.xlsx)</label>
+        <input type="file" class="form-input" id="import-file" accept=".xlsx,.xls"/>
+      </div>
+      <div id="import-status" class="t-caption" style="display:none;margin-top:var(--space-sm);"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-import')">Cancel</button>
+      <button class="btn btn-primary" id="btn-run-import">Import</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/config.js"></script>
+<script src="/js/auth.js"></script>
+<script>
+/* ============================================================
+   employees.html — Employee Masterlist
+   ============================================================ */
+
+const PAGE_SIZE = 20;
+let currentUser = null;
+let canWrite    = false;
+let allEmployees  = [];
+let filteredEmployees = [];
+let currentPage = 1;
+let departments = [];
+let positions   = [];
+let empTypes    = [];
+
+/* ---- filter state ---- */
+const filters = { search: '', company: '', dept: '', status: '', empType: '' };
+
+/* ── Init ── */
+document.addEventListener('DOMContentLoaded', () => {
+  currentUser = requireRole('super_admin', 'hr', 'coord', 'it', 'admin');
+  if (!currentUser) return;
+  buildShell(currentUser, 'employees', 'Employees');
+  initPage(currentUser);
+});
+
+async function initPage(user) {
+  canWrite = ['super_admin', 'hr'].includes(user.role);
+
+  /* view-only banner */
+  if (!canWrite) document.getElementById('view-only-banner').classList.remove('hidden');
+
+  /* HR/SA action buttons */
+  if (canWrite) {
+    document.getElementById('page-actions').innerHTML = `
+      <button class="btn btn-secondary" id="btn-export">Export</button>
+      <button class="btn btn-secondary" id="btn-import">Import Excel</button>
+      <button class="btn btn-primary"   id="btn-add">Add Employee</button>
+    `;
+    document.getElementById('btn-add').addEventListener('click', openAddModal);
+    document.getElementById('btn-import').addEventListener('click', () => openModal('modal-import'));
+    document.getElementById('btn-export').addEventListener('click', handleExport);
+    document.getElementById('btn-save-employee').addEventListener('click', handleSaveEmployee);
+    document.getElementById('btn-run-import').addEventListener('click', handleImport);
+  } else {
+    document.getElementById('btn-save-employee').style.display = 'none';
+  }
+
+  /* wire filters */
+  document.getElementById('filter-search').addEventListener('input', e => { filters.search = e.target.value; applyFilters(); });
+  document.getElementById('filter-company').addEventListener('change', e => { filters.company = e.target.value; applyFilters(); });
+  document.getElementById('filter-dept').addEventListener('change',    e => { filters.dept = e.target.value;    applyFilters(); });
+  document.getElementById('filter-status').addEventListener('change',  e => { filters.status = e.target.value;  applyFilters(); });
+  document.getElementById('filter-emp-type').addEventListener('change',e => { filters.empType = e.target.value; applyFilters(); });
+
+  await Promise.all([loadMeta(), loadEmployees()]);
+}
+
+/* ── Meta (positions, emp types, departments) ── */
+async function loadMeta() {
+  try {
+    const [posData, typeData, deptData] = await Promise.all([
+      apiFetch('/employees/positions').catch(() => ({ data: [] })),
+      apiFetch('/employees/types').catch(() => ({ data: [] })),
+      apiFetch('/departments').catch(() => ({ data: [] })),
+    ]);
+
+    positions = posData.data || [];
+    empTypes  = typeData.data || [];
+    departments = deptData.data || [];
+
+    /* populate filter dropdowns */
+    const deptSel = document.getElementById('filter-dept');
+    departments.forEach(d => {
+      deptSel.insertAdjacentHTML('beforeend', `<option value="${d.department_id}">${d.department_name}</option>`);
+    });
+
+    const typeSel = document.getElementById('filter-emp-type');
+    empTypes.forEach(t => {
+      typeSel.insertAdjacentHTML('beforeend', `<option value="${t.employment_type_id}">${t.type_name}</option>`);
+    });
+
+    /* populate form selects */
+    const posSel = document.getElementById('emp-position');
+    positions.forEach(p => {
+      posSel.insertAdjacentHTML('beforeend', `<option value="${p.position_id}">${p.position_name}</option>`);
+    });
+
+    const empTypeSel = document.getElementById('emp-emp-type');
+    empTypes.forEach(t => {
+      empTypeSel.insertAdjacentHTML('beforeend', `<option value="${t.employment_type_id}">${t.type_name}</option>`);
+    });
+  } catch (err) {
+    console.warn('Meta load error:', err);
+  }
+}
+
+/* ── Load employees ── */
+async function loadEmployees() {
+  try {
+    const params = new URLSearchParams();
+    if (filters.company) params.set('company_id', filters.company);
+    if (filters.search)  params.set('search', filters.search);
+    if (filters.status !== '') params.set('is_active', filters.status);
+    if (filters.empType) params.set('employment_type_id', filters.empType);
+
+    const res = await apiFetch(`/employees?${params}`);
+    allEmployees = res.data || [];
+    applyFilters();
+  } catch (err) {
+    showToast('Failed to load employees: ' + err.message, 'error');
+    renderTable([]);
+  }
+}
+
+/* ── Filter + render ── */
+function applyFilters() {
+  const search = filters.search.toLowerCase();
+  filteredEmployees = allEmployees.filter(e => {
+    const name = formatEmployeeName(e).toLowerCase();
+    const num  = (e.employee_number || '').toLowerCase();
+    if (search && !name.includes(search) && !num.includes(search)) return false;
+    if (filters.company && String(e.company_id) !== filters.company) return false;
+    if (filters.status !== '' && String(e.is_active) !== filters.status) return false;
+    if (filters.empType && String(e.employment_type_id) !== filters.empType) return false;
+    if (filters.dept && String(e.department_id) !== filters.dept) return false;
+    return true;
+  });
+
+  currentPage = 1;
+  document.getElementById('result-count').textContent = `${filteredEmployees.length} employee${filteredEmployees.length !== 1 ? 's' : ''}`;
+  renderTable(filteredEmployees);
+  renderPagination();
+}
+
+function getPageData() {
+  const start = (currentPage - 1) * PAGE_SIZE;
+  return filteredEmployees.slice(start, start + PAGE_SIZE);
+}
+
+function renderTable(rows) {
+  const tbody = document.getElementById('employee-tbody');
+  const pageData = getPageData();
+
+  if (!pageData.length) {
+    tbody.innerHTML = `<tr><td colspan="11" class="table-empty">No employees found.</td></tr>`;
+    return;
+  }
+
+  const startIdx = (currentPage - 1) * PAGE_SIZE;
+  tbody.innerHTML = pageData.map((e, i) => {
+    const name       = formatEmployeeName(e);
+    const enrolled   = e.biometric_device_uid
+      ? `<span class="tag tag-active">Enrolled</span>`
+      : `<span class="tag tag-neutral">Pending</span>`;
+    const statusTag  = e.is_active
+      ? `<span class="tag tag-active">Active</span>`
+      : `<span class="tag tag-error">Inactive</span>`;
+    const editBtn    = canWrite
+      ? `<button class="btn btn-ghost btn-sm" onclick="openEditModal(${e.employee_id})">Edit</button>`
+      : '';
+
+    return `<tr>
+      <td class="t-caption">${startIdx + i + 1}</td>
+      <td style="font-weight:500;">${name}</td>
+      <td class="t-caption" style="font-family:var(--font-mono);">${e.employee_number || '—'}</td>
+      <td>${e.position_name || '—'}</td>
+      <td>${e.department_name || '—'}</td>
+      <td>${e.company_code || e.company_id || '—'}</td>
+      <td class="t-caption">${fmtDate(e.date_hired)}</td>
+      <td class="t-caption">${e.type_name || '—'}</td>
+      <td>${statusTag}</td>
+      <td>${enrolled}</td>
+      <td style="white-space:nowrap;">
+        <button class="btn btn-ghost btn-sm" onclick="openEditModal(${e.employee_id})">View</button>
+        ${editBtn}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function renderPagination() {
+  const totalPages = Math.ceil(filteredEmployees.length / PAGE_SIZE);
+  const pag = document.getElementById('pagination');
+  const info = document.getElementById('pagination-info');
+  const btns = document.getElementById('page-btns');
+
+  if (totalPages <= 1) {
+    pag.style.display = 'none';
+    return;
+  }
+
+  pag.style.display = 'flex';
+  const start = (currentPage - 1) * PAGE_SIZE + 1;
+  const end   = Math.min(currentPage * PAGE_SIZE, filteredEmployees.length);
+  info.textContent = `${start}–${end} of ${filteredEmployees.length}`;
+
+  let html = `<button class="page-btn" onclick="goPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>&lsaquo;</button>`;
+  for (let p = 1; p <= totalPages; p++) {
+    if (totalPages > 7 && p > 3 && p < totalPages - 1 && Math.abs(p - currentPage) > 1) {
+      if (p === 4 || p === totalPages - 2) html += `<span style="padding:0 4px;color:var(--text-disabled);">…</span>`;
+      continue;
+    }
+    html += `<button class="page-btn${p === currentPage ? ' active' : ''}" onclick="goPage(${p})">${p}</button>`;
+  }
+  html += `<button class="page-btn" onclick="goPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>&rsaquo;</button>`;
+  btns.innerHTML = html;
+}
+
+function goPage(p) {
+  const totalPages = Math.ceil(filteredEmployees.length / PAGE_SIZE);
+  if (p < 1 || p > totalPages) return;
+  currentPage = p;
+  renderTable(filteredEmployees);
+  renderPagination();
+}
+
+/* ── Add / Edit ── */
+function openAddModal() {
+  document.getElementById('modal-employee-title').textContent = 'Add Employee';
+  document.getElementById('emp-id').value = '';
+  document.getElementById('form-employee').reset();
+  openModal('modal-employee');
+}
+
+function openEditModal(employeeId) {
+  const emp = allEmployees.find(e => e.employee_id === employeeId);
+  if (!emp) return;
+
+  document.getElementById('modal-employee-title').textContent = canWrite ? 'Edit Employee' : 'View Employee';
+  document.getElementById('emp-id').value         = emp.employee_id;
+  document.getElementById('emp-last-name').value  = emp.last_name  || '';
+  document.getElementById('emp-first-name').value = emp.first_name || '';
+  document.getElementById('emp-middle-name').value= emp.middle_name || '';
+  document.getElementById('emp-number').value     = emp.employee_number || '';
+  document.getElementById('emp-company').value    = emp.company_id || '';
+  document.getElementById('emp-position').value   = emp.position_id || '';
+  document.getElementById('emp-date-hired').value = emp.date_hired ? emp.date_hired.split('T')[0] : '';
+  document.getElementById('emp-emp-type').value   = emp.employment_type_id || '';
+
+  /* disable fields if view-only */
+  ['emp-last-name','emp-first-name','emp-middle-name','emp-number',
+   'emp-company','emp-position','emp-date-hired','emp-emp-type'].forEach(id => {
+    document.getElementById(id).disabled = !canWrite;
+  });
+
+  document.getElementById('btn-save-employee').style.display = canWrite ? '' : 'none';
+  openModal('modal-employee');
+}
+
+async function handleSaveEmployee() {
+  const id        = document.getElementById('emp-id').value;
+  const lastName  = document.getElementById('emp-last-name').value.trim();
+  const firstName = document.getElementById('emp-first-name').value.trim();
+  const middleName= document.getElementById('emp-middle-name').value.trim();
+  const empNum    = document.getElementById('emp-number').value.trim();
+  const companyId = document.getElementById('emp-company').value;
+  const posId     = document.getElementById('emp-position').value;
+  const dateHired = document.getElementById('emp-date-hired').value;
+  const empTypeId = document.getElementById('emp-emp-type').value;
+
+  if (!lastName || !firstName || !empNum || !companyId || !posId || !dateHired || !empTypeId) {
+    showToast('Please fill in all required fields.', 'error');
+    return;
+  }
+
+  const payload = { last_name: lastName, first_name: firstName, middle_name: middleName,
+    employee_number: empNum, company_id: companyId, position_id: posId,
+    date_hired: dateHired, employment_type_id: empTypeId };
+
+  const btn = document.getElementById('btn-save-employee');
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+
+  try {
+    if (id) {
+      await apiFetch(`/employees/${id}`, { method: 'PUT', body: JSON.stringify(payload) });
+      showToast('Employee updated.', 'success');
+    } else {
+      await apiFetch('/employees', { method: 'POST', body: JSON.stringify(payload) });
+      showToast('Employee added.', 'success');
+    }
+    closeModal('modal-employee');
+    await loadEmployees();
+  } catch (err) {
+    showToast('Save failed: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Save Employee';
+  }
+}
+
+/* ── Import ── */
+async function handleImport() {
+  const file = document.getElementById('import-file').files[0];
+  if (!file) { showToast('Please select a file.', 'error'); return; }
+
+  const status = document.getElementById('import-status');
+  status.style.display = '';
+  status.textContent = 'Uploading…';
+
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const token = localStorage.getItem(CONFIG.TOKEN_KEY);
+    const res = await fetch(CONFIG.API_BASE + '/employees/import', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: formData,
+    });
+    if (!res.ok) { const b = await res.json().catch(() => ({})); throw new Error(b.error || `HTTP ${res.status}`); }
+    const data = await res.json();
+    status.textContent = `Imported ${data.data?.imported || 0} records.`;
+    showToast('Import complete.', 'success');
+    closeModal('modal-import');
+    await loadEmployees();
+  } catch (err) {
+    status.textContent = 'Error: ' + err.message;
+    showToast('Import failed: ' + err.message, 'error');
+  }
+}
+
+/* ── Export ── */
+function handleExport() {
+  const params = new URLSearchParams();
+  if (filters.company) params.set('company_id', filters.company);
+  if (filters.status !== '') params.set('is_active', filters.status);
+  const token = localStorage.getItem(CONFIG.TOKEN_KEY);
+  const url = `${CONFIG.API_BASE}/employees/export?${params}&token=${encodeURIComponent(token)}`;
+  window.open(url, '_blank');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MINERVA — Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&family=Space+Mono:wght@400;700&family=Doto:wght@100..900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/css/shared.css" />
+</head>
+<body>
+  <div id="app">
+    <nav id="sidebar"></nav>
+    <div id="main">
+      <header id="topbar"></header>
+      <div id="page-content" class="page-content">
+
+        <!-- Page Header -->
+        <div class="page-header mb-lg">
+          <div>
+            <div class="page-title">Dashboard</div>
+            <div class="page-subtitle" id="today-date">—</div>
+          </div>
+          <div class="page-actions">
+            <span class="t-caption" id="last-refresh">—</span>
+          </div>
+        </div>
+
+        <!-- KPI Row -->
+        <div class="grid-4 mb-lg">
+          <div class="kpi-card">
+            <div class="kpi-label">Today's Punches</div>
+            <div class="kpi-value" id="kpi-punches"><span class="skeleton" style="width:48px;height:32px;display:inline-block;"></span></div>
+            <div class="kpi-meta t-caption" id="kpi-punches-meta">—</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Active Employees</div>
+            <div class="kpi-value" id="kpi-active"><span class="skeleton" style="width:48px;height:32px;display:inline-block;"></span></div>
+            <div class="kpi-meta t-caption">Both companies</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Anomalies</div>
+            <div class="kpi-value t-accent" id="kpi-anomalies"><span class="skeleton" style="width:48px;height:32px;display:inline-block;"></span></div>
+            <div class="kpi-meta t-caption">Flagged today</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Pending Approvals</div>
+            <div class="kpi-value" id="kpi-pending"><span class="skeleton" style="width:48px;height:32px;display:inline-block;"></span></div>
+            <div class="kpi-meta t-caption">Requests &amp; leave</div>
+          </div>
+        </div>
+
+        <!-- Main grid: Live Feed + Device Status -->
+        <div class="grid-2-1 mb-lg">
+          <!-- Live Punch Feed -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Live Punch Feed</div>
+              <span class="tag tag-active" id="feed-status">LIVE</span>
+            </div>
+            <div class="card-body" id="punch-feed">
+              <div class="skeleton-row"></div>
+              <div class="skeleton-row"></div>
+              <div class="skeleton-row"></div>
+              <div class="skeleton-row"></div>
+              <div class="skeleton-row"></div>
+            </div>
+          </div>
+
+          <!-- Device Status -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Device Status</div>
+            </div>
+            <div class="card-body">
+              <div style="display:flex;flex-direction:column;gap:var(--space-md);">
+                <!-- UTH Device -->
+                <div style="padding:var(--space-md);background:var(--surface-raised);border-radius:var(--radius-sm);">
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-sm);">
+                    <span style="font-weight:500;font-size:14px;color:var(--text-display);">UTH Device</span>
+                    <span class="tag" id="uth-status-tag">—</span>
+                  </div>
+                  <div class="t-caption" id="uth-ip">IP: —</div>
+                  <div class="t-caption" id="uth-last-sync">Last sync: —</div>
+                </div>
+                <!-- SSH Device -->
+                <div style="padding:var(--space-md);background:var(--surface-raised);border-radius:var(--radius-sm);">
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-sm);">
+                    <span style="font-weight:500;font-size:14px;color:var(--text-display);">SSH Device</span>
+                    <span class="tag" id="ssh-status-tag">—</span>
+                  </div>
+                  <div class="t-caption" id="ssh-ip">IP: —</div>
+                  <div class="t-caption" id="ssh-last-sync">Last sync: —</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom grid: Anomaly Queue + Quick Actions -->
+        <div class="grid-2">
+          <!-- Anomaly Queue -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Anomaly Queue</div>
+              <a href="/pages/hr_timekeeping.html" class="btn btn-ghost btn-sm">View All</a>
+            </div>
+            <div class="card-body">
+              <table style="width:100%;border-collapse:collapse;" id="anomaly-table">
+                <thead>
+                  <tr>
+                    <th class="t-label" style="text-align:left;padding-bottom:var(--space-sm);">Employee</th>
+                    <th class="t-label" style="text-align:left;padding-bottom:var(--space-sm);">Type</th>
+                    <th class="t-label" style="text-align:left;padding-bottom:var(--space-sm);">Time</th>
+                    <th class="t-label" style="text-align:right;padding-bottom:var(--space-sm);">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="anomaly-tbody">
+                  <tr><td colspan="4"><div class="skeleton-row"></div></td></tr>
+                  <tr><td colspan="4"><div class="skeleton-row"></div></td></tr>
+                  <tr><td colspan="4"><div class="skeleton-row"></div></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Quick Actions -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Quick Actions</div>
+            </div>
+            <div class="card-body" style="display:flex;flex-direction:column;gap:var(--space-sm);">
+              <a href="/pages/employees.html" class="btn btn-primary">Manage Employees</a>
+              <a href="/pages/coord_schedule.html" class="btn btn-secondary">View Schedule Grid</a>
+              <a href="/pages/hr_timekeeping.html" class="btn btn-secondary">Timekeeping</a>
+              <a href="/pages/audit_log.html" class="btn btn-secondary">Audit Log</a>
+              <a href="/pages/devices.html" class="btn btn-ghost">Device Management</a>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /#page-content -->
+    </div><!-- /#main -->
+  </div><!-- /#app -->
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/config.js"></script>
+  <script src="/js/auth.js"></script>
+  <script>
+    /* ---- Helpers ---- */
+    function timeAgo(dateStr) {
+      if (!dateStr) return '—';
+      const diff = Date.now() - new Date(dateStr).getTime();
+      const s = Math.floor(diff / 1000);
+      if (s < 60)  return `${s}s ago`;
+      if (s < 3600) return `${Math.floor(s/60)}m ago`;
+      return `${Math.floor(s/3600)}h ago`;
+    }
+
+    function makePunchItem(punch) {
+      const dir = (punch.new_state || punch.direction || '').toLowerCase();
+      const isIn = dir === 'c/in' || dir === 'in';
+      return `
+        <div class="punch-item">
+          <span class="punch-direction ${isIn ? 'in' : 'out'}">${isIn ? 'C/IN' : 'C/OUT'}</span>
+          <span style="flex:1;font-size:13px;color:var(--text-primary);">${punch.employee_name || punch.device_user_id || '—'}</span>
+          <span class="t-caption">${fmtTime(punch.record_time)}</span>
+        </div>`;
+    }
+
+    function setKpi(id, val, fallback = '—') {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = (val !== null && val !== undefined) ? String(val) : fallback;
+    }
+
+    function setTag(id, online) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.className = 'tag ' + (online ? 'tag-active' : 'tag-error');
+      el.textContent = online ? 'ONLINE' : 'OFFLINE';
+    }
+
+    /* ---- Load KPIs ---- */
+    async function loadKpis() {
+      try {
+        const data = await apiFetch('/devices/dashboard-kpis');
+        if (data && data.data) {
+          const d = data.data;
+          setKpi('kpi-punches', d.today_punches ?? '0');
+          setKpi('kpi-active',  d.active_employees ?? '—');
+          setKpi('kpi-anomalies', d.anomalies ?? '0');
+          setKpi('kpi-pending', d.pending_approvals ?? '0');
+          document.getElementById('kpi-punches-meta').textContent =
+            `${d.cin_count ?? 0} C/In · ${d.cout_count ?? 0} C/Out`;
+        }
+      } catch (err) {
+        ['kpi-punches','kpi-active','kpi-anomalies','kpi-pending'].forEach(id => {
+          setKpi(id, '<span class="t-caption" style="font-size:11px;">[ FAILED TO LOAD ]</span>');
+        });
+      }
+    }
+
+    /* ---- Load Devices ---- */
+    async function loadDevices() {
+      try {
+        const data = await apiFetch('/devices');
+        const devices = data?.data || [];
+        const uth = devices.find(d => d.company_code === 'UTH' || d.location?.includes('UTH'));
+        const ssh = devices.find(d => d.company_code === 'SSH' || d.location?.includes('SSH'));
+
+        if (uth) {
+          setTag('uth-status-tag', uth.is_online);
+          document.getElementById('uth-ip').textContent       = `IP: ${uth.ip_address || '—'}`;
+          document.getElementById('uth-last-sync').textContent = `Last sync: ${timeAgo(uth.last_sync_at)}`;
+        } else {
+          setTag('uth-status-tag', false);
+        }
+        if (ssh) {
+          setTag('ssh-status-tag', ssh.is_online);
+          document.getElementById('ssh-ip').textContent       = `IP: ${ssh.ip_address || '—'}`;
+          document.getElementById('ssh-last-sync').textContent = `Last sync: ${timeAgo(ssh.last_sync_at)}`;
+        } else {
+          setTag('ssh-status-tag', false);
+        }
+      } catch (err) {
+        setTag('uth-status-tag', false);
+        setTag('ssh-status-tag', false);
+      }
+    }
+
+    /* ---- Load Anomalies ---- */
+    async function loadAnomalies() {
+      const tbody = document.getElementById('anomaly-tbody');
+      try {
+        const data = await apiFetch('/timekeeping/anomalies?limit=5');
+        const rows = data?.data || [];
+        if (!rows.length) {
+          tbody.innerHTML = `<tr><td colspan="4"><div class="empty-state"><div class="t-caption">No anomalies today</div></div></td></tr>`;
+          return;
+        }
+        tbody.innerHTML = rows.map(r => `
+          <tr style="border-top:1px solid var(--border);">
+            <td style="padding:10px var(--space-xs) 10px 0;font-size:13px;color:var(--text-primary);">${r.employee_name || '—'}</td>
+            <td style="padding:10px var(--space-xs);"><span class="tag tag-warning" style="font-size:10px;">${r.anomaly_type || 'ANOMALY'}</span></td>
+            <td style="padding:10px var(--space-xs);"><span class="t-caption">${fmtTime(r.record_time)}</span></td>
+            <td style="padding:10px 0 10px var(--space-xs);text-align:right;">
+              <a href="/pages/hr_timekeeping.html" class="btn btn-ghost btn-sm">Review</a>
+            </td>
+          </tr>`).join('');
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="4" class="t-caption" style="font-family:var(--font-mono);padding:var(--space-md) 0;">[ FAILED TO LOAD ]</td></tr>`;
+      }
+    }
+
+    /* ---- Socket.io punch feed ---- */
+    function initSocket() {
+      const token = localStorage.getItem(CONFIG.TOKEN_KEY);
+      const socket = io({ auth: { token } });
+      const feed = document.getElementById('punch-feed');
+
+      feed.innerHTML = `<div class="empty-state"><div class="t-caption">Waiting for punches...</div></div>`;
+
+      socket.on('connect', () => {
+        document.getElementById('punch-dot')?.classList.remove('offline');
+      });
+      socket.on('disconnect', () => {
+        document.getElementById('punch-dot')?.classList.add('offline');
+        document.getElementById('feed-status').textContent = 'OFFLINE';
+        document.getElementById('feed-status').className = 'tag tag-error';
+      });
+      socket.on('PUNCH_RECEIVED', (punch) => {
+        const emptyState = feed.querySelector('.empty-state');
+        if (emptyState) emptyState.remove();
+
+        feed.insertAdjacentHTML('afterbegin', makePunchItem(punch));
+
+        /* Keep max 30 items */
+        const items = feed.querySelectorAll('.punch-item');
+        if (items.length > 30) items[items.length - 1].remove();
+
+        /* Flash KPI */
+        const kpiEl = document.getElementById('kpi-punches');
+        if (kpiEl) {
+          const cur = parseInt(kpiEl.textContent) || 0;
+          kpiEl.textContent = cur + 1;
+        }
+      });
+    }
+
+    /* ---- Date display ---- */
+    function setDate() {
+      const el = document.getElementById('today-date');
+      if (el) el.textContent = new Date().toLocaleDateString('en-PH', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Manila',
+      });
+      const ref = document.getElementById('last-refresh');
+      if (ref) ref.textContent = `Refreshed ${fmtTime(new Date())}`;
+    }
+
+    /* ---- Init ---- */
+    function initPage(user) {
+      setDate();
+      loadKpis();
+      loadDevices();
+      loadAnomalies();
+      initSocket();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const user = requireRole('super_admin');
+      if (!user) return;
+      buildShell(user, 'dashboard', 'Dashboard');
+      initPage(user);
+    });
+  </script>
+</body>
+</html>

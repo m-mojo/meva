@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Configuration — MINERVA HRIS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&family=Space+Mono:wght@400;700&family=Doto:wght@100..900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/css/shared.css"/>
+</head>
+<body>
+<div id="app">
+  <nav id="sidebar"></nav>
+  <div id="main">
+    <header id="topbar"></header>
+    <main id="page-content">
+
+      <!-- Page Header -->
+      <div class="page-header mb-lg">
+        <div>
+          <div class="page-title">Configuration</div>
+          <div class="page-subtitle">HR system rules and settings</div>
+        </div>
+        <div class="page-actions" id="page-actions"></div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs mb-lg" id="main-tabs">
+        <div class="tab-item active" data-tab="computation">Computation Rules</div>
+        <div class="tab-item" data-tab="holidays">Holidays</div>
+        <div class="tab-item" data-tab="leave">Leave Configuration</div>
+        <div class="tab-item" data-tab="notifications">Notifications</div>
+      </div>
+
+      <!-- ========== TAB: COMPUTATION RULES ========== -->
+      <div class="tab-pane active" id="tab-computation">
+        <div class="grid-2">
+
+          <!-- Punch Timing -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Punch Timing</div>
+            </div>
+            <div class="card-body">
+              <div class="form-group">
+                <label class="form-label">Company</label>
+                <select class="form-select" id="cr-company">
+                  <option value="1">UTH — Uno Transit Hotel</option>
+                  <option value="2">SSH — SSH Company</option>
+                </select>
+              </div>
+              <div class="divider"></div>
+              <div class="form-group">
+                <label class="form-label">Duplicate Punch Window (seconds)</label>
+                <input type="number" class="form-input" id="cr-dup-window" min="0" max="300" placeholder="60"/>
+                <div class="form-hint">Punches within this window are silently dropped. Default: 60s.</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Punch Reset Hours</label>
+                <input type="number" class="form-input" id="cr-reset-hours" min="1" max="24" placeholder="14"/>
+                <div class="form-hint">If no punch for this many hours, next punch forces C/In. Default: 14h.</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Grace Period (minutes)</label>
+                <input type="number" class="form-input" id="cr-grace-period" min="0" max="60" placeholder="5"/>
+                <div class="form-hint">Punch-in within sched_in + grace = on-time, no late deduction.</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Early OT Threshold (minutes)</label>
+                <input type="number" class="form-input" id="cr-early-ot" min="0" max="120" placeholder="30"/>
+                <div class="form-hint">Punch earlier than sched_in minus this → flagged as Early OT.</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Late OT Threshold (minutes)</label>
+                <input type="number" class="form-input" id="cr-late-ot" min="0" max="120" placeholder="30"/>
+                <div class="form-hint">Punch later than sched_out plus this → flagged as Late OT.</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Near-Window Tolerance (minutes)</label>
+                <input type="number" class="form-input" id="cr-near-window" min="0" max="60" placeholder="10"/>
+                <div class="form-hint">Punch outside schedule window but within tolerance → anomaly flag, not auto-OT.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Break Rules -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Break Deduction</div>
+            </div>
+            <div class="card-body">
+              <div class="toggle-row mb-md">
+                <div class="toggle-info">
+                  <div class="toggle-label">Enable Break Deduction</div>
+                  <div class="toggle-hint">Automatically deduct break time when shift exceeds threshold.</div>
+                </div>
+                <label class="toggle">
+                  <input type="checkbox" id="cr-break-enabled"/>
+                  <span class="toggle-track"></span>
+                </label>
+              </div>
+              <div id="break-settings">
+                <div class="form-group">
+                  <label class="form-label">Break Deduct Threshold (hours)</label>
+                  <input type="number" class="form-input" id="cr-break-threshold" min="0" max="24" step="0.5" placeholder="9"/>
+                  <div class="form-hint">Deduction applied when total_hours_day exceeds this value.</div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Break Deduction Amount (hours)</label>
+                  <input type="number" class="form-input" id="cr-break-hours" min="0" max="4" step="0.5" placeholder="1"/>
+                  <div class="form-hint">Hours deducted from total when break threshold is exceeded.</div>
+                </div>
+                <div class="divider"></div>
+                <div class="toggle-row">
+                  <div class="toggle-info">
+                    <div class="toggle-label">Apply Break to Graveyard Shifts</div>
+                    <div class="toggle-hint">If OFF, graveyard shifts skip break deduction regardless of hours worked.</div>
+                  </div>
+                  <label class="toggle">
+                    <input type="checkbox" id="cr-break-graveyard"/>
+                    <span class="toggle-track"></span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="mb-md" style="display:flex;align-items:center;gap:var(--space-sm);">
+          <button class="btn btn-primary" id="btn-save-rules">Save Rules</button>
+          <span class="t-caption t-secondary" id="rules-save-status"></span>
+        </div>
+      </div>
+
+      <!-- ========== TAB: HOLIDAYS ========== -->
+      <div class="tab-pane hidden" id="tab-holidays">
+        <div class="page-header mb-md" style="padding:0;">
+          <div>
+            <div class="t-label">Holiday List</div>
+            <div class="t-caption t-secondary">Governs day_scenario in timekeeping computation.</div>
+          </div>
+          <div class="page-actions">
+            <select class="filter-select" id="holiday-filter-company" style="min-width:140px;">
+              <option value="">All Companies</option>
+              <option value="1">UTH</option>
+              <option value="2">SSH</option>
+            </select>
+            <select class="filter-select" id="holiday-filter-year" style="min-width:100px;">
+              <option value="2026">2026</option>
+              <option value="2025">2025</option>
+            </select>
+            <button class="btn btn-primary btn-sm" id="btn-add-holiday">+ Add Holiday</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Holiday Name</th>
+                  <th>Type</th>
+                  <th>Company</th>
+                  <th style="width:100px;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="holidays-tbody">
+                <tr><td colspan="5" style="text-align:center;padding:var(--space-lg);"><div class="skeleton-row"></div><div class="skeleton-row"></div><div class="skeleton-row"></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== TAB: LEAVE CONFIGURATION ========== -->
+      <div class="tab-pane hidden" id="tab-leave">
+        <div class="grid-2">
+
+          <!-- Tenure-Based Allocation -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Tenure-Based Leave Allocation</div>
+            </div>
+            <div class="card-body">
+              <div class="t-caption t-secondary mb-md">VL days based on completed years of service. SL is fixed.</div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Tenure Range</th>
+                      <th>VL Days</th>
+                      <th>SL Days</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="t-caption">0 – &lt; 1 year</td>
+                      <td><input type="number" class="form-input" style="width:64px;padding:4px 8px;" id="vl-yr0" value="5" min="0"/></td>
+                      <td><input type="number" class="form-input" style="width:64px;padding:4px 8px;" id="sl-yr0" value="5" min="0"/></td>
+                    </tr>
+                    <tr>
+                      <td class="t-caption">1 – &lt; 2 years</td>
+                      <td><input type="number" class="form-input" style="width:64px;padding:4px 8px;" id="vl-yr1" value="5" min="0"/></td>
+                      <td><input type="number" class="form-input" style="width:64px;padding:4px 8px;" id="sl-yr1" value="5" min="0"/></td>
+                    </tr>
+                    <tr>
+                      <td class="t-caption">2 – &lt; 3 years</td>
+                      <td><input type="number" class="form-input" style="width:64px;padding:4px 8px;" id="vl-yr2" value="6" min="0"/></td>
+                      <td><input type="number" class="form-input" style="width:64px;padding:4px 8px;" id="sl-yr2" value="5" min="0"/></td>
+                    </tr>
+                    <tr>
+                      <td class="t-caption">3 – &lt; 5 years</td>
+                      <td><input type="number" class="form-input" style="width:64px;padding:4px 8px;" id="vl-yr3" value="7" min="0"/></td>
+                      <td><input type="number" class="form-input" style="width:64px;padding:4px 8px;" id="sl-yr3" value="5" min="0"/></td>
+                    </tr>
+                    <tr>
+                      <td class="t-caption">5+ years</td>
+                      <td><input type="number" class="form-input" style="width:64px;padding:4px 8px;" id="vl-yr5" value="7" min="0"/></td>
+                      <td><input type="number" class="form-input" style="width:64px;padding:4px 8px;" id="sl-yr5" value="5" min="0"/></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="mb-sm" style="margin-top:var(--space-md);">
+                <button class="btn btn-primary btn-sm" id="btn-save-tenure">Save Allocation</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Cashout Settings -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Leave Cashout Settings</div>
+            </div>
+            <div class="card-body">
+              <div class="toggle-row mb-md">
+                <div class="toggle-info">
+                  <div class="toggle-label">Enable VL Cashout</div>
+                  <div class="toggle-hint">Allow unused Vacation Leave to be converted to pay.</div>
+                </div>
+                <label class="toggle">
+                  <input type="checkbox" id="leave-vl-cashout" checked/>
+                  <span class="toggle-track"></span>
+                </label>
+              </div>
+              <div class="toggle-row mb-md">
+                <div class="toggle-info">
+                  <div class="toggle-label">Enable SL Year-End Cashout</div>
+                  <div class="toggle-hint">Unused SL credits are cashed out at year-end per company policy.</div>
+                </div>
+                <label class="toggle">
+                  <input type="checkbox" id="leave-sl-cashout" checked/>
+                  <span class="toggle-track"></span>
+                </label>
+              </div>
+              <div class="form-group">
+                <label class="form-label">SL Cashout Date (MM-DD)</label>
+                <input type="text" class="form-input" id="sl-cashout-date" placeholder="12-31" style="max-width:120px;"/>
+                <div class="form-hint">Date in the year when SL unused balance is computed for cashout.</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Max VL Carryover (days)</label>
+                <input type="number" class="form-input" id="vl-carryover-max" min="0" placeholder="5" style="max-width:100px;"/>
+                <div class="form-hint">Maximum VL days allowed to carry over to next year. 0 = no carryover.</div>
+              </div>
+              <div class="divider"></div>
+              <button class="btn btn-primary btn-sm" id="btn-save-cashout">Save Cashout Settings</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ========== TAB: NOTIFICATIONS ========== -->
+      <div class="tab-pane hidden" id="tab-notifications">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Notification Event Settings</div>
+            <span class="t-caption t-secondary">Toggle events and recipient roles for in-app notifications.</span>
+          </div>
+          <div class="card-body" id="notif-list">
+            <!-- JS populates -->
+            <div class="skeleton-row mb-sm"></div>
+            <div class="skeleton-row mb-sm"></div>
+            <div class="skeleton-row mb-sm"></div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- ========== MODAL: ADD / EDIT HOLIDAY ========== -->
+<div class="modal-overlay hidden" id="modal-holiday">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-holiday-title">Add Holiday</div>
+      <button class="modal-close" id="btn-close-holiday-modal">&times;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="holiday-edit-id"/>
+      <div class="form-group">
+        <label class="form-label">Date <span style="color:var(--warning)">*</span></label>
+        <input type="date" class="form-input" id="holiday-date"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Holiday Name <span style="color:var(--warning)">*</span></label>
+        <input type="text" class="form-input" id="holiday-name" placeholder="e.g. Independence Day"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Type <span style="color:var(--warning)">*</span></label>
+        <select class="form-select" id="holiday-type">
+          <option value="regular">Regular Holiday</option>
+          <option value="special">Special Non-Working</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Company <span style="color:var(--warning)">*</span></label>
+        <select class="form-select" id="holiday-company">
+          <option value="1">UTH — Uno Transit Hotel</option>
+          <option value="2">SSH — SSH Company</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="btn-cancel-holiday">Cancel</button>
+      <button class="btn btn-primary" id="btn-save-holiday">Save Holiday</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== MODAL: DELETE HOLIDAY CONFIRM ========== -->
+<div class="modal-overlay hidden" id="modal-delete-holiday">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-header">
+      <div class="modal-title">Delete Holiday</div>
+      <button class="modal-close" id="btn-close-delete-holiday">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p class="t-secondary" id="delete-holiday-msg">Are you sure you want to remove this holiday?</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="btn-cancel-delete-holiday">Cancel</button>
+      <button class="btn btn-primary" id="btn-confirm-delete-holiday" style="background:var(--warning);">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/config.js"></script>
+<script src="/js/auth.js"></script>
+<script>
+/* ─── Bootstrap ─────────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', () => {
+  const user = requireRole('hr', 'super_admin');
+  if (!user) return;
+  buildShell(user, 'configuration', 'Configuration');
+  initPage(user);
+});
+
+/* ─── State ──────────────────────────────────────────────────── */
+let currentCompanyId = 1;
+let editingHolidayId = null;
+let deletingHolidayId = null;
+const NOTIF_EVENTS = [
+  { code: 'MISSED_PUNCH_DETECTED',   label: 'Missed Punch Detected',       roles: ['hr'] },
+  { code: 'BIOMETRIC_NOT_ENROLLED',  label: 'Biometric Not Enrolled',       roles: ['it', 'hr'] },
+  { code: 'OT_FLAGGED_NO_FORM',      label: 'OT Flagged – No Form',         roles: ['hr'] },
+  { code: 'ANOMALY_DETECTED',        label: 'Anomaly Detected',             roles: ['hr'] },
+  { code: 'LEAVE_REQUEST_SUBMITTED', label: 'Leave Request Submitted',      roles: ['hr'] },
+  { code: 'REQUEST_SUBMITTED',       label: 'Form Request Submitted',       roles: ['hr'] },
+  { code: 'DEVICE_SYNC_FAILED',      label: 'Device Sync Failed',           roles: ['it'] },
+  { code: 'DEVICE_CLOCK_DRIFT',      label: 'Device Clock Drift Detected',  roles: ['it'] },
+  { code: 'SCHEDULE_PUBLISHED',      label: 'Schedule Published',           roles: ['coord'] },
+  { code: 'EMPLOYEE_TRANSFER',       label: 'Employee Transfer',            roles: ['hr', 'coord'] },
+];
+
+/* ─── Init ───────────────────────────────────────────────────── */
+async function initPage(user) {
+  setupTabs();
+  setupCompanySwitch();
+  await loadComputationRules();
+  setupRulesSave();
+  loadHolidays();
+  setupHolidayModal();
+  renderNotifications();
+}
+
+/* ─── Tabs ───────────────────────────────────────────────────── */
+function setupTabs() {
+  document.querySelectorAll('.tab-item').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-pane').forEach(p => p.classList.add('hidden'));
+      tab.classList.add('active');
+      document.getElementById('tab-' + tab.dataset.tab).classList.remove('hidden');
+    });
+  });
+}
+
+/* ─── Computation Rules ──────────────────────────────────────── */
+function setupCompanySwitch() {
+  document.getElementById('cr-company').addEventListener('change', function() {
+    currentCompanyId = parseInt(this.value);
+    loadComputationRules();
+  });
+}
+
+async function loadComputationRules() {
+  try {
+    const token = getToken();
+    const [pcRes, rcRes] = await Promise.all([
+      fetch(`${CONFIG.API_BASE}/config/punch-config?company_id=${currentCompanyId}`, { headers: { Authorization: `Bearer ${token}` } }),
+      fetch(`${CONFIG.API_BASE}/config/computation-rules?company_id=${currentCompanyId}`, { headers: { Authorization: `Bearer ${token}` } }),
+    ]);
+    if (pcRes.ok) {
+      const { data } = await pcRes.json();
+      if (data) {
+        document.getElementById('cr-dup-window').value = data.duplicate_punch_window_seconds ?? 60;
+        document.getElementById('cr-reset-hours').value = data.punch_reset_hours ?? 14;
+      }
+    }
+    if (rcRes.ok) {
+      const { data } = await rcRes.json();
+      if (data) {
+        document.getElementById('cr-grace-period').value   = data.grace_period_minutes ?? 5;
+        document.getElementById('cr-early-ot').value       = data.early_ot_threshold_minutes ?? 30;
+        document.getElementById('cr-late-ot').value        = data.late_ot_threshold_minutes ?? 30;
+        document.getElementById('cr-near-window').value    = data.near_window_tolerance_minutes ?? 10;
+        document.getElementById('cr-break-enabled').checked = !!data.break_deduction_enabled;
+        document.getElementById('cr-break-threshold').value = data.break_deduct_threshold_hours ?? 9;
+        document.getElementById('cr-break-hours').value     = data.break_deduct_hours ?? 1;
+        document.getElementById('cr-break-graveyard').checked = !!data.break_applies_to_graveyard;
+      }
+    }
+  } catch (err) {
+    console.error('Failed to load computation rules:', err);
+  }
+}
+
+function setupRulesSave() {
+  document.getElementById('btn-save-rules').addEventListener('click', async () => {
+    const token = getToken();
+    const status = document.getElementById('rules-save-status');
+    status.textContent = 'Saving…';
+    try {
+      const punchBody = {
+        company_id: currentCompanyId,
+        duplicate_punch_window_seconds: parseInt(document.getElementById('cr-dup-window').value),
+        punch_reset_hours: parseInt(document.getElementById('cr-reset-hours').value),
+      };
+      const rulesBody = {
+        company_id: currentCompanyId,
+        grace_period_minutes:            parseInt(document.getElementById('cr-grace-period').value),
+        early_ot_threshold_minutes:      parseInt(document.getElementById('cr-early-ot').value),
+        late_ot_threshold_minutes:       parseInt(document.getElementById('cr-late-ot').value),
+        near_window_tolerance_minutes:   parseInt(document.getElementById('cr-near-window').value),
+        break_deduction_enabled:         document.getElementById('cr-break-enabled').checked,
+        break_deduct_threshold_hours:    parseFloat(document.getElementById('cr-break-threshold').value),
+        break_deduct_hours:              parseFloat(document.getElementById('cr-break-hours').value),
+        break_applies_to_graveyard:      document.getElementById('cr-break-graveyard').checked,
+      };
+      const [r1, r2] = await Promise.all([
+        fetch(`${CONFIG.API_BASE}/config/punch-config`, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(punchBody) }),
+        fetch(`${CONFIG.API_BASE}/config/computation-rules`, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(rulesBody) }),
+      ]);
+      if (r1.ok && r2.ok) {
+        status.textContent = 'Saved.';
+        setTimeout(() => { status.textContent = ''; }, 2000);
+      } else {
+        status.textContent = 'Save failed.';
+      }
+    } catch (err) {
+      status.textContent = 'Error: ' + err.message;
+    }
+  });
+}
+
+/* ─── Holidays ───────────────────────────────────────────────── */
+async function loadHolidays() {
+  const company = document.getElementById('holiday-filter-company').value;
+  const year    = document.getElementById('holiday-filter-year').value;
+  const token   = getToken();
+  const tbody   = document.getElementById('holidays-tbody');
+  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:var(--space-lg);">Loading…</td></tr>';
+  try {
+    const params = new URLSearchParams();
+    if (company) params.set('company_id', company);
+    if (year)    params.set('year', year);
+    const res = await fetch(`${CONFIG.API_BASE}/holidays?${params}`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const { data } = await res.json();
+    if (!data || !data.length) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-disabled);padding:var(--space-lg);">No holidays found.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = data.map(h => `
+      <tr>
+        <td class="t-caption" style="font-family:var(--font-mono);">${formatDate(h.holiday_date)}</td>
+        <td>${h.holiday_name}</td>
+        <td><span class="tag ${h.holiday_type === 'regular' ? 'tag-error' : 'tag-warning'}">${h.holiday_type === 'regular' ? 'Regular' : 'Special'}</span></td>
+        <td class="t-caption">${h.company_id === 1 ? 'UTH' : 'SSH'}</td>
+        <td style="display:flex;gap:4px;">
+          <button class="btn btn-ghost btn-sm" onclick="openEditHoliday(${JSON.stringify(h).replace(/"/g,'&quot;')})">Edit</button>
+          <button class="btn btn-ghost btn-sm" style="color:var(--warning);" onclick="confirmDeleteHoliday(${h.holiday_id},'${h.holiday_name}')">Del</button>
+        </td>
+      </tr>
+    `).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--warning);padding:var(--space-lg);">Error: ${err.message}</td></tr>`;
+  }
+}
+
+function setupHolidayModal() {
+  document.getElementById('holiday-filter-company').addEventListener('change', loadHolidays);
+  document.getElementById('holiday-filter-year').addEventListener('change', loadHolidays);
+  document.getElementById('btn-add-holiday').addEventListener('click', () => openAddHoliday());
+  document.getElementById('btn-close-holiday-modal').addEventListener('click', closeHolidayModal);
+  document.getElementById('btn-cancel-holiday').addEventListener('click', closeHolidayModal);
+  document.getElementById('btn-save-holiday').addEventListener('click', saveHoliday);
+  document.getElementById('btn-close-delete-holiday').addEventListener('click', () => document.getElementById('modal-delete-holiday').classList.add('hidden'));
+  document.getElementById('btn-cancel-delete-holiday').addEventListener('click', () => document.getElementById('modal-delete-holiday').classList.add('hidden'));
+  document.getElementById('btn-confirm-delete-holiday').addEventListener('click', doDeleteHoliday);
+}
+
+function openAddHoliday() {
+  editingHolidayId = null;
+  document.getElementById('modal-holiday-title').textContent = 'Add Holiday';
+  document.getElementById('holiday-edit-id').value = '';
+  document.getElementById('holiday-date').value = '';
+  document.getElementById('holiday-name').value = '';
+  document.getElementById('holiday-type').value = 'regular';
+  document.getElementById('holiday-company').value = '1';
+  document.getElementById('modal-holiday').classList.remove('hidden');
+}
+
+function openEditHoliday(h) {
+  editingHolidayId = h.holiday_id;
+  document.getElementById('modal-holiday-title').textContent = 'Edit Holiday';
+  document.getElementById('holiday-edit-id').value = h.holiday_id;
+  document.getElementById('holiday-date').value = h.holiday_date ? h.holiday_date.substring(0, 10) : '';
+  document.getElementById('holiday-name').value = h.holiday_name;
+  document.getElementById('holiday-type').value = h.holiday_type;
+  document.getElementById('holiday-company').value = String(h.company_id);
+  document.getElementById('modal-holiday').classList.remove('hidden');
+}
+
+function closeHolidayModal() {
+  document.getElementById('modal-holiday').classList.add('hidden');
+}
+
+async function saveHoliday() {
+  const token = getToken();
+  const body = {
+    holiday_date:  document.getElementById('holiday-date').value,
+    holiday_name:  document.getElementById('holiday-name').value.trim(),
+    holiday_type:  document.getElementById('holiday-type').value,
+    company_id:    parseInt(document.getElementById('holiday-company').value),
+  };
+  if (!body.holiday_date || !body.holiday_name) { alert('Date and name are required.'); return; }
+  const isEdit = !!editingHolidayId;
+  const url    = isEdit ? `${CONFIG.API_BASE}/holidays/${editingHolidayId}` : `${CONFIG.API_BASE}/holidays`;
+  const method = isEdit ? 'PUT' : 'POST';
+  try {
+    const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
+    if (!res.ok) { const e = await res.json(); throw new Error(e.error || `HTTP ${res.status}`); }
+    closeHolidayModal();
+    loadHolidays();
+  } catch (err) {
+    alert('Failed to save: ' + err.message);
+  }
+}
+
+function confirmDeleteHoliday(id, name) {
+  deletingHolidayId = id;
+  document.getElementById('delete-holiday-msg').textContent = `Remove "${name}"? This cannot be undone.`;
+  document.getElementById('modal-delete-holiday').classList.remove('hidden');
+}
+
+async function doDeleteHoliday() {
+  const token = getToken();
+  try {
+    const res = await fetch(`${CONFIG.API_BASE}/holidays/${deletingHolidayId}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    document.getElementById('modal-delete-holiday').classList.add('hidden');
+    loadHolidays();
+  } catch (err) {
+    alert('Failed to delete: ' + err.message);
+  }
+}
+
+/* ─── Notifications ──────────────────────────────────────────── */
+function renderNotifications() {
+  const container = document.getElementById('notif-list');
+  container.innerHTML = NOTIF_EVENTS.map(ev => `
+    <div class="toggle-row" style="padding:var(--space-sm) 0;border-bottom:1px solid var(--border);">
+      <div class="toggle-info" style="flex:1;">
+        <div class="toggle-label">${ev.label}</div>
+        <div class="toggle-hint" style="display:flex;gap:4px;margin-top:4px;">
+          ${ev.roles.map(r => `<span class="tag tag-neutral">${r}</span>`).join('')}
+        </div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" class="notif-toggle" data-code="${ev.code}" checked/>
+        <span class="toggle-track"></span>
+      </label>
+    </div>
+  `).join('');
+}
+
+/* ─── Helpers ────────────────────────────────────────────────── */
+function getToken() {
+  const u = localStorage.getItem('hris_user');
+  return u ? JSON.parse(u).token : '';
+}
+function formatDate(val) {
+  if (!val) return '—';
+  return new Date(val).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+</script>
+</body>
+</html>

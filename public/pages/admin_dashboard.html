@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MINERVA — Admin Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&family=Space+Mono:wght@400;700&family=Doto:wght@100..900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/css/shared.css" />
+</head>
+<body>
+  <div id="app">
+    <nav id="sidebar"></nav>
+    <div id="main">
+      <header id="topbar"></header>
+      <div id="page-content" class="page-content">
+
+        <!-- Page Header -->
+        <div class="page-header mb-lg">
+          <div>
+            <div class="page-title">Dashboard</div>
+            <div class="page-subtitle" id="today-date">—</div>
+          </div>
+          <div class="page-actions">
+            <span class="t-caption" id="cutoff-label">—</span>
+          </div>
+        </div>
+
+        <!-- KPI Row -->
+        <div class="grid-4 mb-lg">
+          <div class="kpi-card">
+            <div class="kpi-label">Active Employees</div>
+            <div class="kpi-value" id="kpi-employees">
+              <span class="skeleton" style="width:48px;height:32px;display:inline-block;"></span>
+            </div>
+            <div class="kpi-meta t-caption">Both companies</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Current Cutoff</div>
+            <div class="kpi-value" id="kpi-cutoff" style="font-size:18px;">
+              <span class="skeleton" style="width:100px;height:28px;display:inline-block;"></span>
+            </div>
+            <div class="kpi-meta t-caption" id="kpi-cutoff-range">—</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Computed Records</div>
+            <div class="kpi-value" id="kpi-computed">
+              <span class="skeleton" style="width:48px;height:32px;display:inline-block;"></span>
+            </div>
+            <div class="kpi-meta t-caption">This cutoff</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Pending Reviews</div>
+            <div class="kpi-value t-accent" id="kpi-pending">
+              <span class="skeleton" style="width:48px;height:32px;display:inline-block;"></span>
+            </div>
+            <div class="kpi-meta t-caption">Manual review needed</div>
+          </div>
+        </div>
+
+        <!-- Main grid: Payroll Summary + Recent Timekeeping -->
+        <div class="grid-2 mb-lg">
+          <!-- Payroll Summary -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Payroll Summary</div>
+              <a href="/pages/hr_timekeeping.html" class="btn btn-ghost btn-sm">Full Report</a>
+            </div>
+            <div class="card-body">
+              <table style="width:100%;border-collapse:collapse;">
+                <thead>
+                  <tr>
+                    <th class="t-label" style="text-align:left;padding-bottom:var(--space-sm);">Company</th>
+                    <th class="t-label" style="text-align:right;padding-bottom:var(--space-sm);">Employees</th>
+                    <th class="t-label" style="text-align:right;padding-bottom:var(--space-sm);">Computed</th>
+                    <th class="t-label" style="text-align:right;padding-bottom:var(--space-sm);">Pending</th>
+                  </tr>
+                </thead>
+                <tbody id="payroll-tbody">
+                  <tr><td colspan="4"><div class="skeleton-row"></div></td></tr>
+                  <tr><td colspan="4"><div class="skeleton-row"></div></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Recent Timekeeping -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Recent Timekeeping</div>
+              <a href="/pages/hr_timekeeping.html" class="btn btn-ghost btn-sm">View All</a>
+            </div>
+            <div class="card-body" id="recent-tk-list">
+              <div class="skeleton-row"></div>
+              <div class="skeleton-row"></div>
+              <div class="skeleton-row"></div>
+              <div class="skeleton-row"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Navigation -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Quick Navigation</div>
+          </div>
+          <div class="card-body">
+            <div class="grid-3">
+              <a href="/pages/employees.html" class="btn btn-secondary" style="justify-content:center;">Employees</a>
+              <a href="/pages/hr_timekeeping.html" class="btn btn-secondary" style="justify-content:center;">Timekeeping</a>
+              <a href="/pages/reports.html" class="btn btn-secondary" style="justify-content:center;">Reports</a>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /#page-content -->
+    </div><!-- /#main -->
+  </div><!-- /#app -->
+
+  <script src="/js/config.js"></script>
+  <script src="/js/auth.js"></script>
+  <script>
+    function setKpi(id, val) {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = (val !== null && val !== undefined) ? String(val) : '—';
+    }
+
+    function setCutoff() {
+      const cutoff = getCurrentCutoff();
+      document.getElementById('cutoff-label').textContent    = cutoff.label;
+      setKpi('kpi-cutoff', cutoff.label);
+      document.getElementById('kpi-cutoff-range').textContent =
+        `${fmtDate(cutoff.start)} – ${fmtDate(cutoff.end)}`;
+    }
+
+    async function loadKpis() {
+      try {
+        const data = await apiFetch('/devices/dashboard-kpis');
+        if (data?.data) {
+          const d = data.data;
+          setKpi('kpi-employees', d.active_employees ?? '—');
+          setKpi('kpi-computed',  d.computed_records ?? '—');
+          setKpi('kpi-pending',   d.pending_reviews  ?? '0');
+        }
+      } catch {
+        ['kpi-employees','kpi-computed','kpi-pending'].forEach(id =>
+          setKpi(id, '<span class="t-caption" style="font-size:11px;">[ FAILED TO LOAD ]</span>')
+        );
+      }
+    }
+
+    async function loadPayrollSummary() {
+      const tbody = document.getElementById('payroll-tbody');
+      try {
+        const cutoff = getCurrentCutoff();
+        const data   = await apiFetch(`/timekeeping/summary?cutoff_start=${cutoff.start}&cutoff_end=${cutoff.end}`);
+        const rows   = data?.data || [];
+        if (!rows.length) {
+          tbody.innerHTML = `<tr><td colspan="4"><div class="empty-state"><div class="t-caption">No summary data for this cutoff</div></div></td></tr>`;
+          return;
+        }
+        tbody.innerHTML = rows.map(r => `
+          <tr style="border-top:1px solid var(--border);">
+            <td style="padding:12px var(--space-xs) 12px 0;">
+              <span style="font-size:13px;font-weight:500;color:var(--text-display);">${r.company_name || r.company_code || '—'}</span>
+            </td>
+            <td style="padding:12px var(--space-xs);text-align:right;">
+              <span style="font-size:13px;color:var(--text-primary);">${r.employee_count ?? '—'}</span>
+            </td>
+            <td style="padding:12px var(--space-xs);text-align:right;">
+              <span style="font-size:13px;color:var(--success);font-weight:500;">${r.computed_count ?? '—'}</span>
+            </td>
+            <td style="padding:12px 0 12px var(--space-xs);text-align:right;">
+              <span style="font-size:13px;color:${r.pending_count > 0 ? 'var(--accent)' : 'var(--text-secondary)'};">${r.pending_count ?? '—'}</span>
+            </td>
+          </tr>`).join('');
+      } catch {
+        tbody.innerHTML = `<tr><td colspan="4" class="t-caption" style="font-family:var(--font-mono);padding:var(--space-md) 0;">[ FAILED TO LOAD ]</td></tr>`;
+      }
+    }
+
+    async function loadRecentTimekeeping() {
+      const list = document.getElementById('recent-tk-list');
+      try {
+        const cutoff = getCurrentCutoff();
+        const data   = await apiFetch(`/timekeeping?cutoff_start=${cutoff.start}&limit=6`);
+        const rows   = data?.data || [];
+        if (!rows.length) {
+          list.innerHTML = `<div class="empty-state"><div class="t-caption">No timekeeping records for this cutoff</div></div>`;
+          return;
+        }
+        list.innerHTML = rows.map(r => {
+          const statusClass = r.classification_status === 'manual_review' ? 'tag-warning'
+            : r.classification_status === 'classified' ? 'tag-active' : '';
+          const statusLabel = r.classification_status === 'manual_review' ? 'REVIEW'
+            : r.classification_status === 'classified' ? 'OK' : 'PENDING';
+          return `
+            <div style="display:flex;align-items:center;gap:var(--space-md);padding:10px 0;border-bottom:1px solid var(--border);">
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:13px;font-weight:500;color:var(--text-display);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                  ${r.employee_name || '—'}
+                </div>
+                <div class="t-caption">${fmtDate(r.shift_date)} · ${r.total_hours_day != null ? r.total_hours_day + 'h' : '—'}</div>
+              </div>
+              <span class="tag ${statusClass}" style="font-size:10px;flex-shrink:0;">${statusLabel}</span>
+            </div>`;
+        }).join('');
+      } catch {
+        list.innerHTML = `<div class="t-caption" style="font-family:var(--font-mono);">[ FAILED TO LOAD ]</div>`;
+      }
+    }
+
+    function initPage(user) {
+      document.getElementById('today-date').textContent = new Date().toLocaleDateString('en-PH', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Manila',
+      });
+      setCutoff();
+      loadKpis();
+      loadPayrollSummary();
+      loadRecentTimekeeping();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const user = requireRole('admin', 'super_admin');
+      if (!user) return;
+      buildShell(user, 'dashboard', 'Dashboard');
+      initPage(user);
+    });
+  </script>
+</body>
+</html>

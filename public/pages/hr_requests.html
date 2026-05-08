@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Requests — MINERVA HRIS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&family=Space+Mono:wght@400;700&family=Doto:wght@100..900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/css/shared.css"/>
+</head>
+<body>
+<div id="app">
+  <nav id="sidebar"></nav>
+  <div id="main">
+    <header id="topbar"></header>
+    <main id="page-content" class="page-content">
+
+      <!-- Page Header -->
+      <div class="page-header mb-lg">
+        <div>
+          <div class="page-title">Requests</div>
+          <div class="page-subtitle">OT, Punch Corrections, and Shift Swaps</div>
+        </div>
+        <div class="page-actions" id="page-actions"></div>
+      </div>
+
+      <!-- Role banners -->
+      <div id="banner-viewonly" class="view-only-banner hidden">View Only — You do not have approval permissions.</div>
+      <div id="banner-submitonly" class="view-only-banner hidden">Submit Only — You can submit requests but cannot approve them.</div>
+
+      <!-- Filter Bar -->
+      <div class="filter-bar mb-md">
+        <select class="filter-select" id="filter-type">
+          <option value="">All Types</option>
+          <option value="ot">OT</option>
+          <option value="punch_correction">Punch Correction</option>
+          <option value="shift_swap">Shift Swap</option>
+          <option value="leave">Leave</option>
+        </select>
+        <select class="filter-select" id="filter-status">
+          <option value="">All Statuses</option>
+          <option value="pending">Pending</option>
+          <option value="approved">Approved</option>
+          <option value="denied">Denied</option>
+        </select>
+        <div class="filter-sep"></div>
+        <input class="filter-input" id="filter-employee" type="text" placeholder="Search employee..." style="display:none"/>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs mb-md">
+        <div class="tab-item active" data-tab="pending">Pending</div>
+        <div class="tab-item" data-tab="all">All Requests</div>
+        <div class="tab-item" data-tab="mine">My Submissions</div>
+      </div>
+
+      <!-- Pending Tab -->
+      <div class="tab-pane" id="tab-pending">
+        <div class="card">
+          <div class="card-body">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Type</th>
+                    <th>Employee</th>
+                    <th>Submitted By</th>
+                    <th>Description</th>
+                    <th>Date Filed</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody-pending">
+                  <tr><td colspan="8"><div class="skeleton-row"></div></td></tr>
+                  <tr><td colspan="8"><div class="skeleton-row"></div></td></tr>
+                  <tr><td colspan="8"><div class="skeleton-row"></div></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div id="empty-pending" class="table-empty hidden">
+              <div class="empty-state">
+                <div class="empty-state-title">No Pending Requests</div>
+                <div class="empty-state-body">All requests have been processed.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- All Requests Tab -->
+      <div class="tab-pane hidden" id="tab-all">
+        <div class="card">
+          <div class="card-body">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Type</th>
+                    <th>Employee</th>
+                    <th>Submitted By</th>
+                    <th>Description</th>
+                    <th>Date Filed</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody-all">
+                  <tr><td colspan="8"><div class="skeleton-row"></div></td></tr>
+                  <tr><td colspan="8"><div class="skeleton-row"></div></td></tr>
+                  <tr><td colspan="8"><div class="skeleton-row"></div></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div id="empty-all" class="table-empty hidden">
+              <div class="empty-state">
+                <div class="empty-state-title">No Requests Found</div>
+                <div class="empty-state-body">No requests match your filters.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- My Submissions Tab -->
+      <div class="tab-pane hidden" id="tab-mine">
+        <div class="card">
+          <div class="card-body">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Type</th>
+                    <th>Employee</th>
+                    <th>Submitted By</th>
+                    <th>Description</th>
+                    <th>Date Filed</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody-mine">
+                  <tr><td colspan="8"><div class="skeleton-row"></div></td></tr>
+                  <tr><td colspan="8"><div class="skeleton-row"></div></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div id="empty-mine" class="table-empty hidden">
+              <div class="empty-state">
+                <div class="empty-state-title">No Submissions</div>
+                <div class="empty-state-body">You have not submitted any requests yet.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- Submit Request Modal (coord / it) -->
+<div class="modal-overlay" id="modal-submit">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Submit Request</div>
+      <button class="modal-close" onclick="closeModal('modal-submit')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Request Type</label>
+        <select class="form-select" id="submit-type">
+          <option value="">— Select Type —</option>
+          <option value="ot">OT</option>
+          <option value="punch_correction">Punch Correction</option>
+        </select>
+      </div>
+      <div class="form-group" id="submit-emp-group">
+        <label class="form-label">Employee</label>
+        <select class="form-select" id="submit-employee">
+          <option value="">— Select Employee —</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Date</label>
+        <input class="form-input" type="date" id="submit-date"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <textarea class="form-textarea" id="submit-desc" rows="3" placeholder="Describe the request..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-submit')">Cancel</button>
+      <button class="btn btn-primary" id="btn-submit-request">Submit Request</button>
+    </div>
+  </div>
+</div>
+
+<!-- Deny Reason Modal -->
+<div class="modal-overlay" id="modal-deny">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Deny Request</div>
+      <button class="modal-close" onclick="closeModal('modal-deny')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Reason for Denial <span class="t-caption">(optional)</span></label>
+        <textarea class="form-textarea" id="deny-reason" rows="3" placeholder="Provide a reason..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-deny')">Cancel</button>
+      <button class="btn btn-danger" id="btn-confirm-deny">Confirm Deny</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/config.js"></script>
+<script src="/js/auth.js"></script>
+<script>
+let currentUser = null;
+let canApprove  = false;
+let canSubmit   = false;
+let pendingDenyId = null;
+let allRequests  = [];
+
+const TYPE_LABELS = {
+  ot:               'OT',
+  punch_correction: 'Punch Correction',
+  shift_swap:       'Shift Swap',
+  leave:            'Leave',
+};
+
+function statusTag(status) {
+  const map = {
+    pending:  'tag-warning',
+    approved: 'tag-active',
+    denied:   'tag-error',
+  };
+  return `<span class="tag ${map[status] || 'tag-neutral'}">${(status || '—').toUpperCase()}</span>`;
+}
+
+function buildRow(r, idx, showApprove) {
+  const actions = showApprove && r.status === 'pending'
+    ? `<button class="btn btn-sm btn-primary" onclick="approveRequest(${r.request_id})">Approve</button>
+       <button class="btn btn-sm btn-danger" style="margin-left:4px;" onclick="openDeny(${r.request_id})">Deny</button>`
+    : `<button class="btn btn-ghost btn-sm" onclick="viewRequest(${r.request_id})">View</button>`;
+
+  const desc = (r.description || '—').length > 60
+    ? (r.description || '—').slice(0, 60) + '…'
+    : (r.description || '—');
+
+  return `<tr>
+    <td class="t-caption">${idx}</td>
+    <td><span class="tag tag-neutral" style="font-size:10px;">${TYPE_LABELS[r.request_type] || r.request_type || '—'}</span></td>
+    <td style="font-size:13px;">${r.employee_name || '—'}</td>
+    <td style="font-size:12px;color:var(--text-secondary);">${r.submitted_by_name || r.submitted_by || '—'}</td>
+    <td style="font-size:12px;color:var(--text-secondary);max-width:220px;">${desc}</td>
+    <td class="t-caption">${fmtDate(r.created_at)}</td>
+    <td>${statusTag(r.status)}</td>
+    <td>${actions}</td>
+  </tr>`;
+}
+
+function renderTable(tbodyId, emptyId, rows, showApprove) {
+  const tbody = document.getElementById(tbodyId);
+  const empty = document.getElementById(emptyId);
+  if (!rows.length) {
+    tbody.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+  tbody.innerHTML = rows.map((r, i) => buildRow(r, i + 1, showApprove)).join('');
+}
+
+function getFilteredRows(rows) {
+  const type   = document.getElementById('filter-type').value;
+  const status = document.getElementById('filter-status').value;
+  const emp    = document.getElementById('filter-employee').value.toLowerCase().trim();
+  return rows.filter(r => {
+    if (type   && r.request_type !== type)                          return false;
+    if (status && r.status       !== status)                        return false;
+    if (emp    && !(r.employee_name || '').toLowerCase().includes(emp)) return false;
+    return true;
+  });
+}
+
+async function loadPending() {
+  const tbody = document.getElementById('tbody-pending');
+  try {
+    const data = await apiFetch('/requests?status=pending');
+    const rows = data?.data || [];
+    renderTable('tbody-pending', 'empty-pending', getFilteredRows(rows), canApprove);
+  } catch {
+    document.getElementById('tbody-pending').innerHTML =
+      `<tr><td colspan="8" class="t-caption" style="font-family:var(--font-mono);padding:var(--space-md) 0;">[ FAILED TO LOAD ]</td></tr>`;
+  }
+}
+
+async function loadAll() {
+  try {
+    const type   = document.getElementById('filter-type').value;
+    const status = document.getElementById('filter-status').value;
+    let url = '/requests?';
+    if (type)   url += `type=${type}&`;
+    if (status) url += `status=${status}&`;
+    const data = await apiFetch(url);
+    allRequests = data?.data || [];
+    renderTable('tbody-all', 'empty-all', getFilteredRows(allRequests), canApprove);
+  } catch {
+    document.getElementById('tbody-all').innerHTML =
+      `<tr><td colspan="8" class="t-caption" style="font-family:var(--font-mono);padding:var(--space-md) 0;">[ FAILED TO LOAD ]</td></tr>`;
+  }
+}
+
+async function loadMine() {
+  try {
+    const data = await apiFetch(`/requests?submitted_by=${currentUser.user_id}`);
+    const rows = data?.data || [];
+    renderTable('tbody-mine', 'empty-mine', getFilteredRows(rows), false);
+  } catch {
+    document.getElementById('tbody-mine').innerHTML =
+      `<tr><td colspan="8" class="t-caption" style="font-family:var(--font-mono);padding:var(--space-md) 0;">[ FAILED TO LOAD ]</td></tr>`;
+  }
+}
+
+async function approveRequest(id) {
+  try {
+    await apiFetch(`/requests/${id}/approve`, { method: 'POST' });
+    showToast('Request approved.', 'success');
+    loadPending();
+    loadAll();
+  } catch (err) {
+    showToast(err.message || 'Failed to approve.', 'error');
+  }
+}
+
+function openDeny(id) {
+  pendingDenyId = id;
+  document.getElementById('deny-reason').value = '';
+  openModal('modal-deny');
+}
+
+async function confirmDeny() {
+  if (!pendingDenyId) return;
+  const reason = document.getElementById('deny-reason').value.trim();
+  try {
+    await apiFetch(`/requests/${pendingDenyId}/deny`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+    showToast('Request denied.', 'success');
+    closeModal('modal-deny');
+    pendingDenyId = null;
+    loadPending();
+    loadAll();
+  } catch (err) {
+    showToast(err.message || 'Failed to deny.', 'error');
+  }
+}
+
+function viewRequest(id) {
+  // Navigate or open a view-only detail modal (placeholder)
+  showToast(`Request #${id} — detail view coming soon.`, 'info');
+}
+
+async function loadEmployeesForSubmit() {
+  try {
+    const data = await apiFetch('/employees?is_active=1');
+    const rows = data?.data || [];
+    const sel  = document.getElementById('submit-employee');
+    sel.innerHTML = '<option value="">— Select Employee —</option>' +
+      rows.map(e => `<option value="${e.employee_id}">${formatEmployeeName(e)}</option>`).join('');
+  } catch { /* non-fatal */ }
+}
+
+async function submitRequest() {
+  const type   = document.getElementById('submit-type').value;
+  const empId  = document.getElementById('submit-employee').value;
+  const date   = document.getElementById('submit-date').value;
+  const desc   = document.getElementById('submit-desc').value.trim();
+
+  if (!type || !date || !desc) {
+    showToast('Please fill in all required fields.', 'error');
+    return;
+  }
+
+  try {
+    await apiFetch('/requests', {
+      method: 'POST',
+      body: JSON.stringify({
+        request_type: type,
+        employee_id:  empId || currentUser.employee_id || null,
+        request_date: date,
+        description:  desc,
+      }),
+    });
+    showToast('Request submitted.', 'success');
+    closeModal('modal-submit');
+    loadMine();
+  } catch (err) {
+    showToast(err.message || 'Failed to submit.', 'error');
+  }
+}
+
+/* ---- Tab switching ---- */
+function switchTab(tab) {
+  document.querySelectorAll('.tab-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.tab === tab);
+  });
+  document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden'));
+  document.getElementById(`tab-${tab}`).classList.remove('hidden');
+
+  if (tab === 'pending') loadPending();
+  if (tab === 'all')     loadAll();
+  if (tab === 'mine')    loadMine();
+}
+
+function initPage(user) {
+  currentUser = user;
+  canApprove  = ['super_admin', 'hr'].includes(user.role);
+  canSubmit   = ['super_admin', 'hr', 'coord', 'it'].includes(user.role);
+
+  /* Banner */
+  if (user.role === 'admin') {
+    document.getElementById('banner-viewonly').classList.remove('hidden');
+  } else if (['coord', 'it'].includes(user.role)) {
+    document.getElementById('banner-submitonly').classList.remove('hidden');
+  }
+
+  /* Page actions */
+  const actions = document.getElementById('page-actions');
+  if (canApprove) {
+    actions.innerHTML = `<button class="btn btn-secondary" id="btn-export">Export</button>`;
+    document.getElementById('filter-employee').style.display = '';
+  }
+  if (canSubmit && !canApprove) {
+    actions.innerHTML = `<button class="btn btn-primary" id="btn-submit">Submit Request</button>`;
+  }
+  if (canApprove) {
+    // HR/SA can also submit on behalf
+    actions.innerHTML += `<button class="btn btn-primary" id="btn-submit" style="margin-left:8px;">Submit Request</button>`;
+  }
+
+  /* Wire submit button */
+  document.getElementById('page-actions').addEventListener('click', e => {
+    if (e.target.id === 'btn-submit') {
+      loadEmployeesForSubmit();
+      // Hide employee select for IT (self-submit)
+      const empGroup = document.getElementById('submit-emp-group');
+      empGroup.style.display = (user.role === 'it') ? 'none' : '';
+      // For coord: limit to OT + punch_correction
+      const typeSelect = document.getElementById('submit-type');
+      if (user.role === 'coord') {
+        typeSelect.innerHTML = `
+          <option value="">— Select Type —</option>
+          <option value="ot">OT</option>
+          <option value="punch_correction">Punch Correction</option>
+          <option value="shift_swap">Shift Swap</option>`;
+      }
+      openModal('modal-submit');
+    }
+    if (e.target.id === 'btn-export') {
+      showToast('Export coming soon.', 'info');
+    }
+  });
+
+  /* Filters */
+  ['filter-type', 'filter-status', 'filter-employee'].forEach(id => {
+    document.getElementById(id)?.addEventListener('input', () => {
+      const active = document.querySelector('.tab-item.active')?.dataset.tab || 'pending';
+      switchTab(active);
+    });
+  });
+
+  /* Tabs */
+  document.querySelectorAll('.tab-item').forEach(el => {
+    el.addEventListener('click', () => switchTab(el.dataset.tab));
+  });
+
+  /* Deny confirm */
+  document.getElementById('btn-confirm-deny').addEventListener('click', confirmDeny);
+  document.getElementById('btn-submit-request').addEventListener('click', submitRequest);
+
+  /* Initial load */
+  loadPending();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const user = requireRole('super_admin', 'hr', 'coord', 'it', 'admin');
+  if (!user) return;
+  buildShell(user, 'requests', 'Requests');
+  initPage(user);
+});
+</script>
+</body>
+</html>

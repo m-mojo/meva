@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Configuration — MINERVA HRIS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&family=Space+Mono:wght@400;700&family=Doto:wght@100..900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/css/shared.css"/>
+</head>
+<body>
+<div id="app">
+  <nav id="sidebar"></nav>
+  <div id="main">
+    <header id="topbar"></header>
+    <main id="page-content">
+
+      <!-- Page Header -->
+      <div class="page-header mb-lg">
+        <div>
+          <div class="page-title">Configuration</div>
+          <div class="page-subtitle">IT system and infrastructure settings</div>
+        </div>
+        <div class="page-actions" id="page-actions"></div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs mb-lg" id="main-tabs">
+        <div class="tab-item active" data-tab="users">User Accounts</div>
+        <div class="tab-item" data-tab="org">Org Structure</div>
+        <div class="tab-item" data-tab="devices">Device Settings</div>
+      </div>
+
+      <!-- ========== TAB: USER ACCOUNTS ========== -->
+      <div class="tab-pane active" id="tab-users">
+        <div class="page-header mb-md" style="padding:0;">
+          <div>
+            <div class="t-label">User Accounts</div>
+            <div class="t-caption t-secondary">System login accounts and role assignments.</div>
+          </div>
+          <div class="page-actions">
+            <select class="filter-select" id="user-filter-role" style="min-width:140px;">
+              <option value="">All Roles</option>
+              <option value="super_admin">Super Admin</option>
+              <option value="hr">HR Admin</option>
+              <option value="coord">Coordinator</option>
+              <option value="it">IT Admin</option>
+              <option value="admin">Admin</option>
+            </select>
+            <select class="filter-select" id="user-filter-status" style="min-width:120px;">
+              <option value="">All Status</option>
+              <option value="1">Active</option>
+              <option value="0">Inactive</option>
+            </select>
+            <button class="btn btn-primary btn-sm" id="btn-add-user">+ Add User</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Username</th>
+                  <th>Role</th>
+                  <th>Company</th>
+                  <th>Subdept Scope</th>
+                  <th>Last Login</th>
+                  <th>Status</th>
+                  <th style="width:120px;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="users-tbody">
+                <tr><td colspan="7" style="text-align:center;padding:var(--space-lg);"><div class="skeleton-row"></div><div class="skeleton-row"></div><div class="skeleton-row"></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== TAB: ORG STRUCTURE ========== -->
+      <div class="tab-pane hidden" id="tab-org">
+        <div class="t-caption t-secondary mb-md">Manage the company hierarchy: departments → subdepartments → positions.</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--space-md);">
+
+          <!-- Departments -->
+          <div class="card" style="height:fit-content;">
+            <div class="card-header">
+              <div class="card-title">Departments</div>
+              <button class="btn btn-ghost btn-sm" id="btn-add-dept">+ Add</button>
+            </div>
+            <div class="card-body" id="dept-list" style="min-height:160px;">
+              <div class="skeleton-row mb-sm"></div>
+              <div class="skeleton-row mb-sm"></div>
+            </div>
+          </div>
+
+          <!-- Subdepartments -->
+          <div class="card" style="height:fit-content;">
+            <div class="card-header">
+              <div class="card-title">Subdepartments</div>
+              <button class="btn btn-ghost btn-sm" id="btn-add-subdept" disabled>+ Add</button>
+            </div>
+            <div class="card-body" id="subdept-list" style="min-height:160px;">
+              <div class="t-caption t-secondary" style="padding:var(--space-sm) 0;">Select a department first.</div>
+            </div>
+          </div>
+
+          <!-- Positions -->
+          <div class="card" style="height:fit-content;">
+            <div class="card-header">
+              <div class="card-title">Positions</div>
+              <button class="btn btn-ghost btn-sm" id="btn-add-position" disabled>+ Add</button>
+            </div>
+            <div class="card-body" id="position-list" style="min-height:160px;">
+              <div class="t-caption t-secondary" style="padding:var(--space-sm) 0;">Select a subdepartment first.</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ========== TAB: DEVICE SETTINGS ========== -->
+      <div class="tab-pane hidden" id="tab-devices">
+        <div class="page-header mb-md" style="padding:0;">
+          <div>
+            <div class="t-label">Device Configuration</div>
+            <div class="t-caption t-secondary">Edit IP addresses, ports, and serial numbers for registered biometric devices.</div>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-ghost btn-sm" id="btn-refresh-devices">Refresh</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Device Code</th>
+                  <th>Name</th>
+                  <th>IP Address</th>
+                  <th>Port</th>
+                  <th>Serial</th>
+                  <th>Company</th>
+                  <th>Status</th>
+                  <th style="width:80px;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="devices-tbody">
+                <tr><td colspan="8" style="text-align:center;padding:var(--space-lg);"><div class="skeleton-row"></div><div class="skeleton-row"></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- ========== MODAL: ADD / EDIT USER ========== -->
+<div class="modal-overlay hidden" id="modal-user">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-user-title">Add User</div>
+      <button class="modal-close" id="btn-close-user-modal">&times;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="user-edit-id"/>
+      <div class="form-group">
+        <label class="form-label">Username <span style="color:var(--warning)">*</span></label>
+        <input type="text" class="form-input" id="user-username" placeholder="e.g. jdoe"/>
+      </div>
+      <div class="form-group" id="user-password-group">
+        <label class="form-label">Password <span style="color:var(--warning)">*</span></label>
+        <input type="password" class="form-input" id="user-password" placeholder="Minimum 8 characters"/>
+        <div class="form-hint">Leave blank to keep existing password when editing.</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Role <span style="color:var(--warning)">*</span></label>
+        <select class="form-select" id="user-role">
+          <option value="">— select role —</option>
+          <option value="hr">HR Admin</option>
+          <option value="coord">Coordinator / OIC</option>
+          <option value="it">IT Admin</option>
+          <option value="admin">Admin (View-only)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Company <span style="color:var(--warning)">*</span></label>
+        <select class="form-select" id="user-company">
+          <option value="1">UTH — Uno Transit Hotel</option>
+          <option value="2">SSH — SSH Company</option>
+        </select>
+      </div>
+      <div class="form-group" id="user-subdept-group">
+        <label class="form-label">Subdept Scope</label>
+        <select class="form-select" id="user-subdept-scope">
+          <option value="">All (no restriction)</option>
+        </select>
+        <div class="form-hint">For Coordinators and HR with restricted subdept access.</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="btn-cancel-user">Cancel</button>
+      <button class="btn btn-primary" id="btn-save-user">Save User</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== MODAL: DEACTIVATE USER CONFIRM ========== -->
+<div class="modal-overlay hidden" id="modal-deactivate-user">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-header">
+      <div class="modal-title">Deactivate User</div>
+      <button class="modal-close" id="btn-close-deactivate-user">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p class="t-secondary" id="deactivate-user-msg">Are you sure you want to deactivate this user? They will no longer be able to log in.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="btn-cancel-deactivate-user">Cancel</button>
+      <button class="btn btn-primary" id="btn-confirm-deactivate-user" style="background:var(--warning);">Deactivate</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== MODAL: EDIT DEVICE ========== -->
+<div class="modal-overlay hidden" id="modal-device">
+  <div class="modal" style="max-width:460px;">
+    <div class="modal-header">
+      <div class="modal-title">Edit Device</div>
+      <button class="modal-close" id="btn-close-device-modal">&times;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="device-edit-id"/>
+      <div class="form-group">
+        <label class="form-label">Device Name</label>
+        <input type="text" class="form-input" id="device-name" readonly style="background:var(--surface);color:var(--text-secondary);"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">IP Address <span style="color:var(--warning)">*</span></label>
+        <input type="text" class="form-input" id="device-ip" placeholder="192.168.1.110"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Port <span style="color:var(--warning)">*</span></label>
+        <input type="number" class="form-input" id="device-port" placeholder="4370" min="1" max="65535"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Serial Number</label>
+        <input type="text" class="form-input" id="device-serial" placeholder="KMY2260500024"/>
+        <div class="form-hint">Changing the serial resets the sync cursor. Confirm with IT before changing.</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="btn-cancel-device">Cancel</button>
+      <button class="btn btn-primary" id="btn-save-device">Save Device</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== MODAL: ADD ORG ITEM ========== -->
+<div class="modal-overlay hidden" id="modal-org">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-org-title">Add Item</div>
+      <button class="modal-close" id="btn-close-org-modal">&times;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="org-edit-id"/>
+      <input type="hidden" id="org-type"/>
+      <input type="hidden" id="org-parent-id"/>
+      <div class="form-group">
+        <label class="form-label" id="org-name-label">Name <span style="color:var(--warning)">*</span></label>
+        <input type="text" class="form-input" id="org-name" placeholder=""/>
+      </div>
+      <div class="form-group" id="org-company-group">
+        <label class="form-label">Company <span style="color:var(--warning)">*</span></label>
+        <select class="form-select" id="org-company">
+          <option value="1">UTH — Uno Transit Hotel</option>
+          <option value="2">SSH — SSH Company</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="btn-cancel-org">Cancel</button>
+      <button class="btn btn-primary" id="btn-save-org">Save</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/config.js"></script>
+<script src="/js/auth.js"></script>
+<script>
+/* ─── Bootstrap ─────────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', () => {
+  const user = requireRole('it', 'super_admin');
+  if (!user) return;
+  buildShell(user, 'configuration', 'Configuration');
+  initPage(user);
+});
+
+/* ─── State ──────────────────────────────────────────────────── */
+let editingUserId    = null;
+let deactivatingUserId = null;
+let editingDeviceId  = null;
+let selectedDeptId   = null;
+let selectedSubdeptId = null;
+let orgEditingId     = null;
+let orgType          = null;
+
+/* ─── Init ───────────────────────────────────────────────────── */
+function initPage(user) {
+  setupTabs();
+  loadUsers();
+  setupUserModal();
+  loadOrgDepartments();
+  setupOrgActions();
+  loadDevices();
+  setupDeviceModal();
+}
+
+/* ─── Tabs ───────────────────────────────────────────────────── */
+function setupTabs() {
+  document.querySelectorAll('.tab-item').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-pane').forEach(p => p.classList.add('hidden'));
+      tab.classList.add('active');
+      document.getElementById('tab-' + tab.dataset.tab).classList.remove('hidden');
+    });
+  });
+}
+
+/* ─── User Accounts ──────────────────────────────────────────── */
+async function loadUsers() {
+  const token  = getToken();
+  const role   = document.getElementById('user-filter-role').value;
+  const status = document.getElementById('user-filter-status').value;
+  const tbody  = document.getElementById('users-tbody');
+  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:var(--space-lg);">Loading…</td></tr>';
+  try {
+    const params = new URLSearchParams();
+    if (role)   params.set('role', role);
+    if (status !== '') params.set('is_active', status);
+    const res = await fetch(`${CONFIG.API_BASE}/auth/users?${params}`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const { data } = await res.json();
+    if (!data || !data.length) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-disabled);padding:var(--space-lg);">No users found.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = data.map(u => `
+      <tr>
+        <td style="font-family:var(--font-mono);font-size:13px;">${u.username}</td>
+        <td><span class="tag tag-neutral">${u.role}</span></td>
+        <td class="t-caption">${u.company_id === 1 ? 'UTH' : u.company_id === 2 ? 'SSH' : '—'}</td>
+        <td class="t-caption">${u.subdept_name || '— all —'}</td>
+        <td class="t-caption">${u.last_login ? formatDateTime(u.last_login) : 'Never'}</td>
+        <td><span class="tag ${u.is_active ? 'tag-active' : 'tag-error'}">${u.is_active ? 'Active' : 'Inactive'}</span></td>
+        <td style="display:flex;gap:4px;">
+          <button class="btn btn-ghost btn-sm" onclick="openEditUser(${JSON.stringify(u).replace(/"/g,'&quot;')})">Edit</button>
+          ${u.is_active ? `<button class="btn btn-ghost btn-sm" style="color:var(--warning);" onclick="confirmDeactivateUser(${u.user_acc_id},'${u.username}')">Deactivate</button>` : `<button class="btn btn-ghost btn-sm" onclick="reactivateUser(${u.user_acc_id})">Reactivate</button>`}
+        </td>
+      </tr>
+    `).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--warning);padding:var(--space-lg);">Error: ${err.message}</td></tr>`;
+  }
+}
+
+function setupUserModal() {
+  document.getElementById('user-filter-role').addEventListener('change', loadUsers);
+  document.getElementById('user-filter-status').addEventListener('change', loadUsers);
+  document.getElementById('btn-add-user').addEventListener('click', () => openAddUser());
+  document.getElementById('btn-close-user-modal').addEventListener('click', closeUserModal);
+  document.getElementById('btn-cancel-user').addEventListener('click', closeUserModal);
+  document.getElementById('btn-save-user').addEventListener('click', saveUser);
+  document.getElementById('btn-close-deactivate-user').addEventListener('click', () => document.getElementById('modal-deactivate-user').classList.add('hidden'));
+  document.getElementById('btn-cancel-deactivate-user').addEventListener('click', () => document.getElementById('modal-deactivate-user').classList.add('hidden'));
+  document.getElementById('btn-confirm-deactivate-user').addEventListener('click', doDeactivateUser);
+}
+
+function openAddUser() {
+  editingUserId = null;
+  document.getElementById('modal-user-title').textContent = 'Add User';
+  document.getElementById('user-edit-id').value = '';
+  document.getElementById('user-username').value = '';
+  document.getElementById('user-password').value = '';
+  document.getElementById('user-role').value = '';
+  document.getElementById('user-company').value = '1';
+  document.getElementById('user-subdept-scope').value = '';
+  document.getElementById('modal-user').classList.remove('hidden');
+}
+
+function openEditUser(u) {
+  editingUserId = u.user_acc_id;
+  document.getElementById('modal-user-title').textContent = 'Edit User';
+  document.getElementById('user-edit-id').value = u.user_acc_id;
+  document.getElementById('user-username').value = u.username;
+  document.getElementById('user-password').value = '';
+  document.getElementById('user-role').value = u.role;
+  document.getElementById('user-company').value = String(u.company_id);
+  document.getElementById('modal-user').classList.remove('hidden');
+}
+
+function closeUserModal() {
+  document.getElementById('modal-user').classList.add('hidden');
+}
+
+async function saveUser() {
+  const token = getToken();
+  const body = {
+    username:   document.getElementById('user-username').value.trim(),
+    role:       document.getElementById('user-role').value,
+    company_id: parseInt(document.getElementById('user-company').value),
+  };
+  const pw = document.getElementById('user-password').value;
+  if (pw) body.password = pw;
+  if (!body.username || !body.role) { alert('Username and role are required.'); return; }
+  if (!editingUserId && !pw) { alert('Password is required for new users.'); return; }
+  const isEdit = !!editingUserId;
+  const url    = isEdit ? `${CONFIG.API_BASE}/auth/users/${editingUserId}` : `${CONFIG.API_BASE}/auth/users`;
+  const method = isEdit ? 'PUT' : 'POST';
+  try {
+    const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
+    if (!res.ok) { const e = await res.json(); throw new Error(e.error || `HTTP ${res.status}`); }
+    closeUserModal();
+    loadUsers();
+  } catch (err) {
+    alert('Failed to save: ' + err.message);
+  }
+}
+
+function confirmDeactivateUser(id, username) {
+  deactivatingUserId = id;
+  document.getElementById('deactivate-user-msg').textContent = `Deactivate "${username}"? They will not be able to log in.`;
+  document.getElementById('modal-deactivate-user').classList.remove('hidden');
+}
+
+async function doDeactivateUser() {
+  const token = getToken();
+  try {
+    const res = await fetch(`${CONFIG.API_BASE}/auth/users/${deactivatingUserId}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ is_active: false }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    document.getElementById('modal-deactivate-user').classList.add('hidden');
+    loadUsers();
+  } catch (err) {
+    alert('Failed: ' + err.message);
+  }
+}
+
+async function reactivateUser(id) {
+  const token = getToken();
+  if (!confirm('Reactivate this user?')) return;
+  try {
+    const res = await fetch(`${CONFIG.API_BASE}/auth/users/${id}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ is_active: true }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    loadUsers();
+  } catch (err) {
+    alert('Failed: ' + err.message);
+  }
+}
+
+/* ─── Org Structure ──────────────────────────────────────────── */
+async function loadOrgDepartments() {
+  const token = getToken();
+  const list  = document.getElementById('dept-list');
+  list.innerHTML = '<div class="skeleton-row mb-sm"></div><div class="skeleton-row mb-sm"></div>';
+  try {
+    const res = await fetch(`${CONFIG.API_BASE}/org/departments`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const { data } = await res.json();
+    if (!data || !data.length) { list.innerHTML = '<div class="t-caption t-secondary">No departments found.</div>'; return; }
+    list.innerHTML = data.map(d => `
+      <div class="org-item ${selectedDeptId === d.department_id ? 'active' : ''}"
+           style="display:flex;align-items:center;justify-content:space-between;padding:8px var(--space-sm);border-radius:6px;cursor:pointer;margin-bottom:2px;${selectedDeptId === d.department_id ? 'background:var(--surface-raised);' : ''}"
+           onclick="selectDept(${d.department_id})">
+        <span class="t-caption">${d.department_name}</span>
+        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openOrgEdit('dept',${d.department_id},'${d.department_name}')">Edit</button>
+      </div>
+    `).join('');
+  } catch (err) {
+    list.innerHTML = `<div class="t-caption" style="color:var(--warning);">Error: ${err.message}</div>`;
+  }
+}
+
+async function selectDept(deptId) {
+  selectedDeptId   = deptId;
+  selectedSubdeptId = null;
+  document.getElementById('btn-add-subdept').disabled = false;
+  document.getElementById('position-list').innerHTML = '<div class="t-caption t-secondary" style="padding:var(--space-sm) 0;">Select a subdepartment first.</div>';
+  document.getElementById('btn-add-position').disabled = true;
+  loadOrgDepartments();
+  const token = getToken();
+  const list  = document.getElementById('subdept-list');
+  list.innerHTML = '<div class="skeleton-row mb-sm"></div>';
+  try {
+    const res = await fetch(`${CONFIG.API_BASE}/org/subdepartments?department_id=${deptId}`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const { data } = await res.json();
+    if (!data || !data.length) { list.innerHTML = '<div class="t-caption t-secondary">No subdepartments.</div>'; return; }
+    list.innerHTML = data.map(s => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px var(--space-sm);border-radius:6px;cursor:pointer;margin-bottom:2px;${selectedSubdeptId === s.subdept_id ? 'background:var(--surface-raised);' : ''}"
+           onclick="selectSubdept(${s.subdept_id})">
+        <span class="t-caption">${s.subdept_name}</span>
+        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openOrgEdit('subdept',${s.subdept_id},'${s.subdept_name}')">Edit</button>
+      </div>
+    `).join('');
+  } catch (err) {
+    list.innerHTML = `<div class="t-caption" style="color:var(--warning);">Error: ${err.message}</div>`;
+  }
+}
+
+async function selectSubdept(subdeptId) {
+  selectedSubdeptId = subdeptId;
+  document.getElementById('btn-add-position').disabled = false;
+  const token = getToken();
+  const list  = document.getElementById('position-list');
+  list.innerHTML = '<div class="skeleton-row mb-sm"></div>';
+  try {
+    const res = await fetch(`${CONFIG.API_BASE}/org/positions?subdept_id=${subdeptId}`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const { data } = await res.json();
+    if (!data || !data.length) { list.innerHTML = '<div class="t-caption t-secondary">No positions.</div>'; return; }
+    list.innerHTML = data.map(p => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px var(--space-sm);border-radius:6px;margin-bottom:2px;">
+        <span class="t-caption">${p.position_name}</span>
+        <button class="btn btn-ghost btn-sm" onclick="openOrgEdit('position',${p.position_id},'${p.position_name}')">Edit</button>
+      </div>
+    `).join('');
+  } catch (err) {
+    list.innerHTML = `<div class="t-caption" style="color:var(--warning);">Error: ${err.message}</div>`;
+  }
+}
+
+function setupOrgActions() {
+  document.getElementById('btn-add-dept').addEventListener('click', () => openOrgAdd('dept'));
+  document.getElementById('btn-add-subdept').addEventListener('click', () => openOrgAdd('subdept'));
+  document.getElementById('btn-add-position').addEventListener('click', () => openOrgAdd('position'));
+  document.getElementById('btn-close-org-modal').addEventListener('click', closeOrgModal);
+  document.getElementById('btn-cancel-org').addEventListener('click', closeOrgModal);
+  document.getElementById('btn-save-org').addEventListener('click', saveOrg);
+}
+
+function openOrgAdd(type) {
+  orgEditingId = null;
+  orgType = type;
+  const labels = { dept: 'Department', subdept: 'Subdepartment', position: 'Position' };
+  document.getElementById('modal-org-title').textContent = 'Add ' + labels[type];
+  document.getElementById('org-edit-id').value = '';
+  document.getElementById('org-type').value = type;
+  document.getElementById('org-parent-id').value = type === 'subdept' ? (selectedDeptId || '') : type === 'position' ? (selectedSubdeptId || '') : '';
+  document.getElementById('org-name').value = '';
+  document.getElementById('org-name-label').innerHTML = labels[type] + ' Name <span style="color:var(--warning)">*</span>';
+  document.getElementById('org-company-group').classList.toggle('hidden', type !== 'dept');
+  document.getElementById('modal-org').classList.remove('hidden');
+}
+
+function openOrgEdit(type, id, name) {
+  orgEditingId = id;
+  orgType = type;
+  const labels = { dept: 'Department', subdept: 'Subdepartment', position: 'Position' };
+  document.getElementById('modal-org-title').textContent = 'Edit ' + labels[type];
+  document.getElementById('org-edit-id').value = id;
+  document.getElementById('org-type').value = type;
+  document.getElementById('org-name').value = name;
+  document.getElementById('org-name-label').innerHTML = labels[type] + ' Name <span style="color:var(--warning)">*</span>';
+  document.getElementById('org-company-group').classList.add('hidden');
+  document.getElementById('modal-org').classList.remove('hidden');
+}
+
+function closeOrgModal() {
+  document.getElementById('modal-org').classList.add('hidden');
+}
+
+async function saveOrg() {
+  const token    = getToken();
+  const type     = document.getElementById('org-type').value;
+  const name     = document.getElementById('org-name').value.trim();
+  const parentId = document.getElementById('org-parent-id').value;
+  const editId   = orgEditingId;
+  if (!name) { alert('Name is required.'); return; }
+  const endpoints = { dept: 'departments', subdept: 'subdepartments', position: 'positions' };
+  const endpoint  = endpoints[type];
+  const body = { name };
+  if (!editId) {
+    if (type === 'dept')     body.company_id = parseInt(document.getElementById('org-company').value);
+    if (type === 'subdept')  body.department_id = parseInt(parentId);
+    if (type === 'position') body.subdept_id = parseInt(parentId);
+  }
+  const url    = editId ? `${CONFIG.API_BASE}/org/${endpoint}/${editId}` : `${CONFIG.API_BASE}/org/${endpoint}`;
+  const method = editId ? 'PUT' : 'POST';
+  try {
+    const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
+    if (!res.ok) { const e = await res.json(); throw new Error(e.error || `HTTP ${res.status}`); }
+    closeOrgModal();
+    if (type === 'dept') loadOrgDepartments();
+    else if (type === 'subdept' && selectedDeptId) selectDept(selectedDeptId);
+    else if (type === 'position' && selectedSubdeptId) selectSubdept(selectedSubdeptId);
+  } catch (err) {
+    alert('Failed to save: ' + err.message);
+  }
+}
+
+/* ─── Devices ────────────────────────────────────────────────── */
+async function loadDevices() {
+  const token = getToken();
+  const tbody = document.getElementById('devices-tbody');
+  tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:var(--space-lg);">Loading…</td></tr>';
+  try {
+    const res = await fetch(`${CONFIG.API_BASE}/devices`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const { data } = await res.json();
+    if (!data || !data.length) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text-disabled);padding:var(--space-lg);">No devices registered.</td></tr>'; return; }
+    tbody.innerHTML = data.map(d => `
+      <tr>
+        <td style="font-family:var(--font-mono);font-size:12px;">${d.device_code}</td>
+        <td class="t-caption">${d.device_name}</td>
+        <td style="font-family:var(--font-mono);font-size:12px;">${d.ip_address}</td>
+        <td style="font-family:var(--font-mono);font-size:12px;">${d.port || 4370}</td>
+        <td style="font-family:var(--font-mono);font-size:12px;">${d.serial_number}</td>
+        <td class="t-caption">${d.company_id === 1 ? 'UTH' : 'SSH'}</td>
+        <td><span class="tag ${d.status === 'online' ? 'tag-active' : d.status === 'error' ? 'tag-error' : 'tag-warning'}">${d.status}</span></td>
+        <td>
+          <button class="btn btn-ghost btn-sm" onclick="openEditDevice(${JSON.stringify(d).replace(/"/g,'&quot;')})">Edit</button>
+        </td>
+      </tr>
+    `).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--warning);padding:var(--space-lg);">Error: ${err.message}</td></tr>`;
+  }
+}
+
+function setupDeviceModal() {
+  document.getElementById('btn-refresh-devices').addEventListener('click', loadDevices);
+  document.getElementById('btn-close-device-modal').addEventListener('click', closeDeviceModal);
+  document.getElementById('btn-cancel-device').addEventListener('click', closeDeviceModal);
+  document.getElementById('btn-save-device').addEventListener('click', saveDevice);
+}
+
+function openEditDevice(d) {
+  editingDeviceId = d.device_id;
+  document.getElementById('device-edit-id').value = d.device_id;
+  document.getElementById('device-name').value   = d.device_name;
+  document.getElementById('device-ip').value     = d.ip_address;
+  document.getElementById('device-port').value   = d.port || 4370;
+  document.getElementById('device-serial').value = d.serial_number;
+  document.getElementById('modal-device').classList.remove('hidden');
+}
+
+function closeDeviceModal() {
+  document.getElementById('modal-device').classList.add('hidden');
+}
+
+async function saveDevice() {
+  const token = getToken();
+  const body = {
+    ip_address:    document.getElementById('device-ip').value.trim(),
+    port:          parseInt(document.getElementById('device-port').value),
+    serial_number: document.getElementById('device-serial').value.trim(),
+  };
+  if (!body.ip_address || !body.port) { alert('IP and port are required.'); return; }
+  try {
+    const res = await fetch(`${CONFIG.API_BASE}/devices/${editingDeviceId}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) { const e = await res.json(); throw new Error(e.error || `HTTP ${res.status}`); }
+    closeDeviceModal();
+    loadDevices();
+  } catch (err) {
+    alert('Failed to save: ' + err.message);
+  }
+}
+
+/* ─── Helpers ────────────────────────────────────────────────── */
+function getToken() {
+  const u = localStorage.getItem('hris_user');
+  return u ? JSON.parse(u).token : '';
+}
+function formatDateTime(val) {
+  if (!val) return '—';
+  return new Date(val).toLocaleString('en-PH', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+</script>
+</body>
+</html>

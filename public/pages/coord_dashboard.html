@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MINERVA — Coordinator Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&family=Space+Mono:wght@400;700&family=Doto:wght@100..900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/css/shared.css" />
+</head>
+<body>
+  <div id="app">
+    <nav id="sidebar"></nav>
+    <div id="main">
+      <header id="topbar"></header>
+      <div id="page-content" class="page-content">
+
+        <!-- Page Header -->
+        <div class="page-header mb-lg">
+          <div>
+            <div class="page-title">Dashboard</div>
+            <div class="page-subtitle" id="today-date">—</div>
+          </div>
+          <div class="page-actions">
+            <span class="t-caption" id="last-refresh">—</span>
+          </div>
+        </div>
+
+        <!-- KPI Row -->
+        <div class="grid-4 mb-lg">
+          <div class="kpi-card">
+            <div class="kpi-label">My Subdept Punches</div>
+            <div class="kpi-value" id="kpi-punches"><span class="skeleton" style="width:48px;height:32px;display:inline-block;"></span></div>
+            <div class="kpi-meta t-caption">Today</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">My Subdept Employees</div>
+            <div class="kpi-value" id="kpi-employees"><span class="skeleton" style="width:48px;height:32px;display:inline-block;"></span></div>
+            <div class="kpi-meta t-caption">Active headcount</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Schedule Published</div>
+            <div class="kpi-value" id="kpi-schedule-badge" style="margin-top:4px;">
+              <span class="skeleton" style="width:80px;height:24px;display:inline-block;"></span>
+            </div>
+            <div class="kpi-meta t-caption" id="kpi-cutoff-label">Current cutoff</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Pending Notifications</div>
+            <div class="kpi-value" id="kpi-notifs"><span class="skeleton" style="width:48px;height:32px;display:inline-block;"></span></div>
+            <div class="kpi-meta t-caption">HR-approved changes</div>
+          </div>
+        </div>
+
+        <!-- Main grid: Live Feed + Schedule Status -->
+        <div class="grid-2-1 mb-lg">
+          <!-- Live Punch Feed (scoped to subdept) -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Live Punch Feed</div>
+              <span class="tag tag-active" id="feed-status">LIVE</span>
+            </div>
+            <div class="card-body" id="punch-feed">
+              <div class="skeleton-row"></div>
+              <div class="skeleton-row"></div>
+              <div class="skeleton-row"></div>
+              <div class="skeleton-row"></div>
+              <div class="skeleton-row"></div>
+            </div>
+          </div>
+
+          <!-- Schedule Status -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Schedule Status</div>
+              <a href="/pages/coord_schedule.html" class="btn btn-ghost btn-sm">Open Grid</a>
+            </div>
+            <div class="card-body">
+              <div style="display:flex;flex-direction:column;gap:var(--space-md);">
+                <div style="padding:var(--space-md);background:var(--surface-raised);border-radius:var(--radius-sm);">
+                  <div class="t-label" style="margin-bottom:var(--space-xs);">Current Cutoff</div>
+                  <div style="font-size:15px;font-weight:500;color:var(--text-display);" id="sched-cutoff-name">—</div>
+                </div>
+                <div style="padding:var(--space-md);background:var(--surface-raised);border-radius:var(--radius-sm);">
+                  <div class="t-label" style="margin-bottom:var(--space-xs);">Publish State</div>
+                  <div id="sched-state-tag" style="margin-bottom:var(--space-xs);">
+                    <span class="skeleton" style="width:80px;height:22px;display:inline-block;"></span>
+                  </div>
+                  <div class="t-caption" id="sched-state-hint">—</div>
+                </div>
+                <div style="padding:var(--space-md);background:var(--surface-raised);border-radius:var(--radius-sm);">
+                  <div class="t-label" style="margin-bottom:var(--space-xs);">Completeness</div>
+                  <div style="font-size:13px;color:var(--text-primary);" id="sched-completeness">—</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Notifications from HR -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Recent Notifications</div>
+            <span class="t-caption">HR-approved changes affecting your subdept</span>
+          </div>
+          <div class="card-body" id="notif-section">
+            <div class="skeleton-row"></div>
+            <div class="skeleton-row"></div>
+            <div class="skeleton-row"></div>
+          </div>
+        </div>
+
+      </div><!-- /#page-content -->
+    </div><!-- /#main -->
+  </div><!-- /#app -->
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/config.js"></script>
+  <script src="/js/auth.js"></script>
+  <script>
+    function setKpi(id, val) {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = (val !== null && val !== undefined) ? String(val) : '—';
+    }
+
+    function makePunchItem(punch) {
+      const dir = (punch.new_state || punch.direction || '').toLowerCase();
+      const isIn = dir === 'c/in' || dir === 'in';
+      return `
+        <div class="punch-item">
+          <span class="punch-direction ${isIn ? 'in' : 'out'}">${isIn ? 'C/IN' : 'C/OUT'}</span>
+          <span style="flex:1;font-size:13px;color:var(--text-primary);">${punch.employee_name || punch.device_user_id || '—'}</span>
+          <span class="t-caption">${fmtTime(punch.record_time)}</span>
+        </div>`;
+    }
+
+    /* ---- Load KPIs ---- */
+    async function loadKpis(user) {
+      try {
+        const data = await apiFetch('/devices/dashboard-kpis');
+        if (data?.data) {
+          const d = data.data;
+          setKpi('kpi-punches',   d.subdept_punches   ?? d.today_punches   ?? '0');
+          setKpi('kpi-employees', d.subdept_employees ?? d.active_employees ?? '—');
+          setKpi('kpi-notifs',    d.pending_notifs    ?? '0');
+        }
+      } catch {
+        ['kpi-punches','kpi-employees','kpi-notifs'].forEach(id =>
+          setKpi(id, '<span class="t-caption" style="font-size:11px;">[ FAILED TO LOAD ]</span>')
+        );
+      }
+    }
+
+    /* ---- Load Schedule Status ---- */
+    async function loadScheduleStatus(user) {
+      const cutoff = getCurrentCutoff();
+      document.getElementById('kpi-cutoff-label').textContent  = cutoff.label;
+      document.getElementById('sched-cutoff-name').textContent = cutoff.label;
+
+      try {
+        const data = await apiFetch(`/schedules/status?cutoff_start=${cutoff.start}`);
+        const s    = data?.data;
+
+        if (s) {
+          const published = s.is_published;
+          const state     = s.schedule_state || 'pending';
+
+          /* KPI badge */
+          document.getElementById('kpi-schedule-badge').innerHTML =
+            published
+              ? `<span class="tag tag-active">PUBLISHED</span>`
+              : `<span class="tag tag-warning">${state.toUpperCase()}</span>`;
+
+          /* Card state */
+          document.getElementById('sched-state-tag').innerHTML =
+            published
+              ? `<span class="tag tag-active">PUBLISHED</span>`
+              : `<span class="tag tag-warning">${state.toUpperCase()}</span>`;
+
+          const hints = {
+            pending:  'Drafting not yet started.',
+            open:     'Drafting in progress. Save changes freely.',
+            closing:  'Soft deadline approaching — submit soon.',
+            locked:   'Schedule is locked. Contact HR for changes.',
+          };
+          document.getElementById('sched-state-hint').textContent =
+            published ? 'Published and locked for editing.' : (hints[state] || '—');
+
+          document.getElementById('sched-completeness').textContent =
+            s.filled_days != null
+              ? `${s.filled_days} / ${s.total_days ?? 15} days filled`
+              : 'Completeness data unavailable';
+        } else {
+          document.getElementById('kpi-schedule-badge').innerHTML = `<span class="tag">NOT STARTED</span>`;
+          document.getElementById('sched-state-tag').innerHTML    = `<span class="tag">PENDING</span>`;
+          document.getElementById('sched-state-hint').textContent = 'No schedule data for this cutoff.';
+          document.getElementById('sched-completeness').textContent = '0 / 15 days filled';
+        }
+      } catch {
+        document.getElementById('kpi-schedule-badge').innerHTML = `<span class="t-caption" style="font-family:var(--font-mono);font-size:11px;">[ FAILED TO LOAD ]</span>`;
+        document.getElementById('sched-state-tag').innerHTML    = `<span class="t-caption" style="font-family:var(--font-mono);font-size:11px;">[ FAILED TO LOAD ]</span>`;
+      }
+    }
+
+    /* ---- Load Notifications ---- */
+    async function loadNotifications() {
+      const section = document.getElementById('notif-section');
+      try {
+        const data = await apiFetch('/notifications?limit=8');
+        const rows = data?.data || [];
+        if (!rows.length) {
+          section.innerHTML = `<div class="empty-state"><div class="t-caption">No recent notifications</div></div>`;
+          return;
+        }
+        section.innerHTML = rows.map(r => `
+          <div style="display:flex;align-items:flex-start;gap:var(--space-md);padding:var(--space-md) 0;border-bottom:1px solid var(--border);">
+            <div style="flex:1;">
+              <div style="font-size:13px;font-weight:500;color:var(--text-display);">${r.title || 'Notification'}</div>
+              <div class="t-caption" style="margin-top:2px;">${r.message || '—'}</div>
+            </div>
+            <span class="t-caption" style="white-space:nowrap;">${fmtDateTime(r.created_at)}</span>
+          </div>`).join('');
+      } catch {
+        section.innerHTML = `<div class="t-caption" style="font-family:var(--font-mono);">[ FAILED TO LOAD ]</div>`;
+      }
+    }
+
+    /* ---- Socket.io punch feed (subdept-scoped) ---- */
+    function initSocket(user) {
+      const token  = localStorage.getItem(CONFIG.TOKEN_KEY);
+      const socket = io({ auth: { token } });
+      const feed   = document.getElementById('punch-feed');
+
+      feed.innerHTML = `<div class="empty-state"><div class="t-caption">Waiting for punches...</div></div>`;
+
+      socket.on('connect', () => {
+        document.getElementById('punch-dot')?.classList.remove('offline');
+      });
+      socket.on('disconnect', () => {
+        document.getElementById('punch-dot')?.classList.add('offline');
+        document.getElementById('feed-status').textContent = 'OFFLINE';
+        document.getElementById('feed-status').className   = 'tag tag-error';
+      });
+      socket.on('PUNCH_RECEIVED', (punch) => {
+        /* Only show punches for this coordinator's subdept if the server scopes them;
+           otherwise show all (server-side room filtering is preferred). */
+        const empty = feed.querySelector('.empty-state');
+        if (empty) empty.remove();
+        feed.insertAdjacentHTML('afterbegin', makePunchItem(punch));
+        const items = feed.querySelectorAll('.punch-item');
+        if (items.length > 30) items[items.length - 1].remove();
+        const kpiEl = document.getElementById('kpi-punches');
+        if (kpiEl) kpiEl.textContent = (parseInt(kpiEl.textContent) || 0) + 1;
+      });
+      socket.on('SCHEDULE_UPDATED', () => loadScheduleStatus(user));
+      socket.on('HR_NOTIFICATION',  () => {
+        const el = document.getElementById('kpi-notifs');
+        if (el) el.textContent = (parseInt(el.textContent) || 0) + 1;
+        loadNotifications();
+      });
+    }
+
+    function initPage(user) {
+      document.getElementById('today-date').textContent = new Date().toLocaleDateString('en-PH', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Manila',
+      });
+      document.getElementById('last-refresh').textContent = `Refreshed ${fmtTime(new Date())}`;
+      loadKpis(user);
+      loadScheduleStatus(user);
+      loadNotifications();
+      initSocket(user);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const user = requireRole('coord', 'super_admin');
+      if (!user) return;
+      buildShell(user, 'dashboard', 'Dashboard');
+      initPage(user);
+    });
+  </script>
+</body>
+</html>

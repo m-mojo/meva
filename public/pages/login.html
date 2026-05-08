@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MINERVA HRIS — Login</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&family=Space+Mono:wght@400;700&family=Doto:wght@100..900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/css/shared.css" />
+  <style>
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: var(--black);
+    }
+    .login-wrap {
+      width: 100%;
+      max-width: 380px;
+      padding: var(--space-md);
+    }
+    .login-card {
+      background: var(--surface);
+      border: 1px solid var(--border-visible);
+      border-radius: var(--radius-card);
+      padding: var(--space-xl);
+    }
+    .login-brand {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      margin-bottom: var(--space-xl);
+    }
+    .login-brand-mark {
+      width: 36px;
+      height: 36px;
+      background: var(--text-display);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .login-brand-mark span {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--black);
+      letter-spacing: -0.04em;
+    }
+    .login-brand-text {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+    .login-brand-name {
+      font-family: var(--font-mono);
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-display);
+      line-height: 1;
+    }
+    .login-brand-sub {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-disabled);
+    }
+    .form-group {
+      margin-bottom: var(--space-md);
+    }
+    .form-label {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-bottom: var(--space-xs);
+    }
+    .form-input {
+      width: 100%;
+      padding: 10px var(--space-md);
+      background: var(--black);
+      border: 1px solid var(--border-visible);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-size: 14px;
+      transition: border-color var(--dur-fast);
+      outline: none;
+    }
+    .form-input:focus {
+      border-color: var(--text-display);
+    }
+    .login-error {
+      background: var(--accent-subtle);
+      border: 1px solid var(--accent);
+      border-radius: var(--radius-sm);
+      padding: var(--space-sm) var(--space-md);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--accent);
+      margin-bottom: var(--space-md);
+      display: none;
+    }
+    .login-btn {
+      width: 100%;
+      padding: 11px var(--space-md);
+      background: var(--text-display);
+      color: var(--black);
+      border: none;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      margin-top: var(--space-sm);
+      transition: opacity var(--dur-fast);
+    }
+    .login-btn:hover { opacity: 0.85; }
+    .login-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .login-footer {
+      margin-top: var(--space-xl);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-wrap">
+    <div class="login-card">
+      <div class="login-brand">
+        <div class="login-brand-mark"><span>MV</span></div>
+        <div class="login-brand-text">
+          <div class="login-brand-name">MINERVA HRIS</div>
+          <div class="login-brand-sub">Attendance &amp; Timekeeping</div>
+        </div>
+      </div>
+
+      <form id="login-form" autocomplete="off">
+        <div id="login-error" class="login-error"></div>
+
+        <div class="form-group">
+          <label class="form-label" for="username">Username</label>
+          <input
+            id="username"
+            class="form-input"
+            type="text"
+            name="username"
+            autocomplete="username"
+            placeholder="Enter your username"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="password">Password</label>
+          <input
+            id="password"
+            class="form-input"
+            type="password"
+            name="password"
+            autocomplete="current-password"
+            placeholder="••••••••"
+            required
+          />
+        </div>
+
+        <button type="submit" class="login-btn" id="login-btn">Log In</button>
+      </form>
+
+      <div class="login-footer">
+        <span class="t-caption">v1.0 — UTH/SSH Hotel Group</span>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/config.js"></script>
+  <script>
+    /* Redirect if already logged in */
+    (function () {
+      const raw   = localStorage.getItem(CONFIG.USER_KEY);
+      const token = localStorage.getItem(CONFIG.TOKEN_KEY);
+      if (!raw || !token) return;
+      try {
+        const user = JSON.parse(raw);
+        const map = {
+          super_admin: '/pages/sa_dashboard.html',
+          hr:          '/pages/hr_dashboard.html',
+          coord:       '/pages/coord_dashboard.html',
+          it:          '/pages/it_dashboard.html',
+          admin:       '/pages/admin_dashboard.html',
+        };
+        const dest = map[user.role];
+        if (dest) window.location.href = dest;
+      } catch (e) { /* ignore */ }
+    })();
+
+    const ROLE_REDIRECT = {
+      super_admin: '/pages/sa_dashboard.html',
+      hr:          '/pages/hr_dashboard.html',
+      coord:       '/pages/coord_dashboard.html',
+      it:          '/pages/it_dashboard.html',
+      admin:       '/pages/admin_dashboard.html',
+    };
+
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn      = document.getElementById('login-btn');
+      const errBox   = document.getElementById('login-error');
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+
+      errBox.style.display = 'none';
+      btn.disabled         = true;
+      btn.textContent      = 'Logging in...';
+
+      try {
+        const res  = await fetch(CONFIG.API_BASE + '/auth/login', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ username, password }),
+        });
+        const data = await res.json();
+
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || 'Invalid username or password.');
+        }
+
+        localStorage.setItem(CONFIG.TOKEN_KEY, data.data.token);
+        localStorage.setItem(CONFIG.USER_KEY,  JSON.stringify(data.data.user));
+
+        const dest = ROLE_REDIRECT[data.data.user.role] || '/pages/login.html';
+        window.location.href = dest;
+      } catch (err) {
+        errBox.textContent   = err.message || 'Login failed. Please try again.';
+        errBox.style.display = 'block';
+        btn.disabled         = false;
+        btn.textContent      = 'Log In';
+      }
+    });
+  </script>
+</body>
+</html>

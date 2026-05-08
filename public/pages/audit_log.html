@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Audit Log — MINERVA HRIS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&family=Space+Mono:wght@400;700&family=Doto:wght@100..900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/css/shared.css"/>
+</head>
+<body>
+<div id="app">
+  <nav id="sidebar"></nav>
+  <div id="main">
+    <header id="topbar"></header>
+    <main id="page-content" class="page-content">
+
+      <!-- Page Header -->
+      <div class="page-header mb-lg">
+        <div>
+          <div class="page-title">Audit Log</div>
+          <div class="page-subtitle">System-wide action trail</div>
+        </div>
+        <div class="page-actions">
+          <button class="btn btn-secondary" id="btn-export">Export</button>
+        </div>
+      </div>
+
+      <!-- Filter Bar -->
+      <div class="filter-bar mb-md">
+        <select class="filter-select" id="filter-action" style="min-width:200px;">
+          <option value="">All Action Types</option>
+        </select>
+        <input class="filter-input" id="filter-user" type="text" placeholder="Search actor..."/>
+        <div class="filter-sep"></div>
+        <input class="filter-input" type="date" id="filter-from" style="max-width:140px;"/>
+        <span class="t-caption">to</span>
+        <input class="filter-input" type="date"  id="filter-to"   style="max-width:140px;"/>
+        <button class="btn btn-secondary btn-sm" id="btn-search">Search</button>
+        <button class="btn btn-ghost btn-sm"     id="btn-clear">Clear</button>
+      </div>
+
+      <!-- Result count -->
+      <div class="mb-sm" style="display:flex;align-items:center;justify-content:space-between;">
+        <span class="t-caption" id="result-count" style="font-family:var(--font-mono);"></span>
+        <div style="display:flex;align-items:center;gap:var(--space-sm);">
+          <span class="t-caption">Per page:</span>
+          <select class="filter-select" id="per-page" style="min-width:80px;">
+            <option value="50">50</option>
+            <option value="100">100</option>
+            <option value="200">200</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="card">
+        <div class="card-body">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Actor</th>
+                  <th>Role</th>
+                  <th>Action</th>
+                  <th>Table</th>
+                  <th>Record</th>
+                  <th style="max-width:180px;">Before</th>
+                  <th style="max-width:180px;">After</th>
+                  <th>IP</th>
+                  <th>Timestamp</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-audit">
+                <tr><td colspan="9"><div class="skeleton-row"></div></td></tr>
+                <tr><td colspan="9"><div class="skeleton-row"></div></td></tr>
+                <tr><td colspan="9"><div class="skeleton-row"></div></td></tr>
+                <tr><td colspan="9"><div class="skeleton-row"></div></td></tr>
+                <tr><td colspan="9"><div class="skeleton-row"></div></td></tr>
+                <tr><td colspan="9"><div class="skeleton-row"></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div id="empty-audit" class="table-empty hidden">
+            <div class="empty-state">
+              <div class="empty-state-title">No Audit Records</div>
+              <div class="empty-state-body">No entries match your filters.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination mb-lg" id="pagination" style="margin-top:var(--space-md);"></div>
+
+    </main>
+  </div>
+</div>
+
+<!-- Detail Modal -->
+<div class="modal-overlay" id="modal-detail">
+  <div class="modal" style="max-width:640px;">
+    <div class="modal-header">
+      <div class="modal-title">Audit Entry Detail</div>
+      <button class="modal-close" onclick="closeModal('modal-detail')">&times;</button>
+    </div>
+    <div class="modal-body" id="detail-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-detail')">Close</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/config.js"></script>
+<script src="/js/auth.js"></script>
+<script>
+let currentPage = 1;
+let totalPages  = 1;
+let lastRows    = [];
+
+const ROLE_TAG_CLS = {
+  super_admin: 'tag-error',
+  hr:          'tag-active',
+  coord:       'tag-warning',
+  it:          'tag-neutral',
+  admin:       'tag-neutral',
+};
+
+function roleBadge(role) {
+  const cls   = ROLE_TAG_CLS[role] || 'tag-neutral';
+  const label = { super_admin:'Super Admin', hr:'HR Admin', coord:'Coordinator', it:'IT Admin', admin:'Admin' }[role] || role || '—';
+  return `<span class="tag ${cls}" style="font-size:10px;">${label}</span>`;
+}
+
+function truncateJson(val, max = 60) {
+  if (!val) return '—';
+  const str = typeof val === 'object' ? JSON.stringify(val) : String(val);
+  return str.length > max ? str.slice(0, max) + '…' : str;
+}
+
+function buildRow(r, idx) {
+  return `<tr style="cursor:pointer;" onclick="openDetail(${idx})" title="Click to view full detail">
+    <td style="font-size:13px;font-weight:500;white-space:nowrap;">${r.performed_by || r.actor || r.user_id || '—'}</td>
+    <td>${roleBadge(r.actor_role || r.role)}</td>
+    <td style="font-size:12px;white-space:nowrap;">${r.action || r.action_code || '—'}</td>
+    <td style="font-size:11px;font-family:var(--font-mono);color:var(--text-secondary);">${r.table_name || r.affected_table || '—'}</td>
+    <td style="font-size:11px;font-family:var(--font-mono);color:var(--text-secondary);">${r.record_id || r.affected_id || '—'}</td>
+    <td style="font-size:11px;font-family:var(--font-mono);color:var(--text-secondary);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${truncateJson(r.old_value || r.before_data)}</td>
+    <td style="font-size:11px;font-family:var(--font-mono);color:var(--text-secondary);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${truncateJson(r.new_value || r.after_data)}</td>
+    <td style="font-size:11px;font-family:var(--font-mono);color:var(--text-secondary);">${r.ip_address || '—'}</td>
+    <td style="font-size:11px;font-family:var(--font-mono);white-space:nowrap;">${fmtDateTime(r.created_at || r.performed_at)}</td>
+  </tr>`;
+}
+
+function openDetail(idx) {
+  const r = lastRows[idx];
+  if (!r) return;
+
+  const fmtBlock = (val) => {
+    if (!val) return '<span class="t-caption">—</span>';
+    try {
+      const obj = typeof val === 'string' ? JSON.parse(val) : val;
+      return `<pre style="font-family:var(--font-mono);font-size:11px;white-space:pre-wrap;word-break:break-all;background:var(--surface-raised);padding:var(--space-sm);border-radius:var(--radius-sm);margin:0;">${JSON.stringify(obj, null, 2)}</pre>`;
+    } catch {
+      return `<span style="font-family:var(--font-mono);font-size:11px;">${val}</span>`;
+    }
+  };
+
+  document.getElementById('detail-body').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:var(--space-md);">
+      <div class="grid-2">
+        <div>
+          <div class="t-label mb-sm">Actor</div>
+          <div style="font-size:14px;font-weight:500;">${r.performed_by || r.actor || '—'}</div>
+          <div style="margin-top:4px;">${roleBadge(r.actor_role || r.role)}</div>
+        </div>
+        <div>
+          <div class="t-label mb-sm">Timestamp</div>
+          <div style="font-size:13px;font-family:var(--font-mono);">${fmtDateTime(r.created_at || r.performed_at)}</div>
+          <div class="t-caption">IP: ${r.ip_address || '—'}</div>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="grid-2">
+        <div>
+          <div class="t-label mb-sm">Action</div>
+          <div style="font-size:13px;">${r.action || r.action_code || '—'}</div>
+        </div>
+        <div>
+          <div class="t-label mb-sm">Table / Record</div>
+          <div style="font-size:12px;font-family:var(--font-mono);">${r.table_name || r.affected_table || '—'} #${r.record_id || r.affected_id || '—'}</div>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div>
+        <div class="t-label mb-sm">Before</div>
+        ${fmtBlock(r.old_value || r.before_data)}
+      </div>
+      <div>
+        <div class="t-label mb-sm">After</div>
+        ${fmtBlock(r.new_value || r.after_data)}
+      </div>
+    </div>`;
+
+  openModal('modal-detail');
+}
+
+function buildPagination(current, total) {
+  const pag = document.getElementById('pagination');
+  if (total <= 1) { pag.innerHTML = ''; return; }
+
+  const pages = [];
+  pages.push(`<button class="page-btn" ${current === 1 ? 'disabled' : ''} onclick="goPage(${current - 1})">&lsaquo;</button>`);
+
+  const delta = 2;
+  let start = Math.max(1, current - delta);
+  let end   = Math.min(total, current + delta);
+  if (start > 1)     pages.push(`<button class="page-btn" onclick="goPage(1)">1</button>${start > 2 ? '<span class="t-caption" style="padding:0 4px;">…</span>' : ''}`);
+  for (let p = start; p <= end; p++) {
+    pages.push(`<button class="page-btn ${p === current ? 'active' : ''}" onclick="goPage(${p})">${p}</button>`);
+  }
+  if (end < total)   pages.push(`${end < total - 1 ? '<span class="t-caption" style="padding:0 4px;">…</span>' : ''}<button class="page-btn" onclick="goPage(${total})">${total}</button>`);
+  pages.push(`<button class="page-btn" ${current === total ? 'disabled' : ''} onclick="goPage(${current + 1})">&rsaquo;</button>`);
+
+  pag.innerHTML = pages.join('') + `<span class="pagination-info">Page ${current} of ${total}</span>`;
+}
+
+function goPage(p) {
+  currentPage = p;
+  loadAudit();
+}
+
+async function loadActionTypes() {
+  try {
+    // Try dedicated endpoint first, fall back gracefully
+    const data = await apiFetch('/audit/action-types').catch(() => null)
+               || await apiFetch('/auth/audit-actions').catch(() => null);
+    const types = data?.data || [];
+    if (types.length) {
+      const sel = document.getElementById('filter-action');
+      sel.innerHTML = '<option value="">All Action Types</option>' +
+        types.map(t => {
+          const val   = typeof t === 'string' ? t : (t.action_code || t.value || t);
+          const label = typeof t === 'string' ? t : (t.label || t.action_code || t.value || t);
+          return `<option value="${val}">${label}</option>`;
+        }).join('');
+    }
+  } catch { /* non-fatal — dropdown stays as "All Action Types" */ }
+}
+
+async function loadAudit() {
+  const tbody  = document.getElementById('tbody-audit');
+  const empty  = document.getElementById('empty-audit');
+  const action = document.getElementById('filter-action').value;
+  const user   = document.getElementById('filter-user').value.trim();
+  const from   = document.getElementById('filter-from').value;
+  const to     = document.getElementById('filter-to').value;
+  const limit  = document.getElementById('per-page').value || 50;
+
+  const offset = (currentPage - 1) * limit;
+
+  let url = `/audit?limit=${limit}&offset=${offset}`;
+  if (action) url += `&action=${encodeURIComponent(action)}`;
+  if (user)   url += `&user=${encodeURIComponent(user)}`;
+  if (from)   url += `&from=${from}`;
+  if (to)     url += `&to=${to}`;
+
+  tbody.innerHTML = '<tr><td colspan="9"><div class="skeleton-row"></div></td></tr>'.repeat(6);
+  empty.classList.add('hidden');
+  document.getElementById('result-count').textContent = '';
+
+  try {
+    // Try /api/audit first; fall back to /api/reports/logExport
+    let data = await apiFetch(url).catch(() => null);
+    if (!data) {
+      let fallback = `/reports/logExport?limit=${limit}&offset=${offset}`;
+      if (action) fallback += `&action=${encodeURIComponent(action)}`;
+      if (user)   fallback += `&user=${encodeURIComponent(user)}`;
+      if (from)   fallback += `&from=${from}`;
+      if (to)     fallback += `&to=${to}`;
+      data = await apiFetch(fallback);
+    }
+
+    lastRows   = data?.data || (Array.isArray(data) ? data : []);
+    const total = data?.total || lastRows.length;
+    totalPages  = Math.max(1, Math.ceil(total / limit));
+
+    document.getElementById('result-count').textContent =
+      total ? `${total.toLocaleString()} record${total !== 1 ? 's' : ''}` : '';
+
+    if (!lastRows.length) {
+      tbody.innerHTML = '';
+      empty.classList.remove('hidden');
+      buildPagination(1, 1);
+      return;
+    }
+
+    tbody.innerHTML = lastRows.map((r, i) => buildRow(r, i)).join('');
+    buildPagination(currentPage, totalPages);
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="9" class="t-caption" style="font-family:var(--font-mono);padding:var(--space-md) 0;">[ FAILED TO LOAD — ${err.message} ]</td></tr>`;
+  }
+}
+
+async function exportAudit() {
+  try {
+    showToast('Preparing export…', 'info');
+    const action = document.getElementById('filter-action').value;
+    const user   = document.getElementById('filter-user').value.trim();
+    const from   = document.getElementById('filter-from').value;
+    const to     = document.getElementById('filter-to').value;
+
+    let url = `/reports/logExport?format=excel`;
+    if (action) url += `&action=${encodeURIComponent(action)}`;
+    if (user)   url += `&user=${encodeURIComponent(user)}`;
+    if (from)   url += `&from=${from}`;
+    if (to)     url += `&to=${to}`;
+
+    const token = localStorage.getItem(CONFIG.TOKEN_KEY);
+    const res   = await fetch(CONFIG.API_BASE + url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      },
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const blob     = await res.blob();
+    const filename = `audit_log_${new Date().toISOString().slice(0,10)}.xlsx`;
+    const a        = document.createElement('a');
+    a.href         = URL.createObjectURL(blob);
+    a.download     = filename;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    showToast(`${filename} downloaded.`, 'success');
+  } catch (err) {
+    showToast(err.message || 'Export failed.', 'error');
+  }
+}
+
+function clearFilters() {
+  document.getElementById('filter-action').value = '';
+  document.getElementById('filter-user').value   = '';
+  document.getElementById('filter-from').value   = '';
+  document.getElementById('filter-to').value     = '';
+  currentPage = 1;
+  loadAudit();
+}
+
+function initPage(user) {
+  document.getElementById('btn-search').addEventListener('click', () => { currentPage = 1; loadAudit(); });
+  document.getElementById('btn-clear').addEventListener('click', clearFilters);
+  document.getElementById('btn-export').addEventListener('click', exportAudit);
+  document.getElementById('per-page').addEventListener('change', () => { currentPage = 1; loadAudit(); });
+
+  // Allow Enter key in search fields
+  ['filter-user','filter-from','filter-to'].forEach(id => {
+    document.getElementById(id)?.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { currentPage = 1; loadAudit(); }
+    });
+  });
+
+  loadActionTypes();
+  loadAudit();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const user = requireRole('super_admin');
+  if (!user) return;
+  buildShell(user, 'audit_log', 'Audit Log');
+  initPage(user);
+});
+</script>
+</body>
+</html>

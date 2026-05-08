@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Leave Management — MINERVA HRIS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&family=Space+Mono:wght@400;700&family=Doto:wght@100..900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/css/shared.css"/>
+</head>
+<body>
+<div id="app">
+  <nav id="sidebar"></nav>
+  <div id="main">
+    <header id="topbar"></header>
+    <main id="page-content" class="page-content">
+
+      <!-- Page Header -->
+      <div class="page-header mb-lg">
+        <div>
+          <div class="page-title">Leave Management</div>
+          <div class="page-subtitle">VL / SL / Emergency Leave balances and approvals</div>
+        </div>
+        <div class="page-actions" id="page-actions"></div>
+      </div>
+
+      <!-- View-only banner -->
+      <div id="banner-viewonly" class="view-only-banner hidden">View Only — You do not have approval or submission permissions.</div>
+
+      <!-- Filter Bar -->
+      <div class="filter-bar mb-md">
+        <input class="filter-input" id="filter-employee" type="text" placeholder="Search employee..."/>
+        <select class="filter-select" id="filter-company">
+          <option value="">All Companies</option>
+          <option value="UTH">UTH</option>
+          <option value="SSH">SSH</option>
+        </select>
+        <select class="filter-select" id="filter-status">
+          <option value="">All Statuses</option>
+          <option value="pending">Pending</option>
+          <option value="approved">Approved</option>
+          <option value="denied">Denied</option>
+          <option value="on_leave">On Leave</option>
+        </select>
+        <select class="filter-select" id="filter-type">
+          <option value="">All Types</option>
+          <option value="VL">Vacation Leave</option>
+          <option value="SL">Sick Leave</option>
+          <option value="EL">Emergency Leave</option>
+        </select>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs mb-md">
+        <div class="tab-item active" data-tab="pending">Pending</div>
+        <div class="tab-item" data-tab="all">All Leave</div>
+        <div class="tab-item" data-tab="balances">Balances</div>
+      </div>
+
+      <!-- Pending Tab -->
+      <div class="tab-pane" id="tab-pending">
+        <div class="card">
+          <div class="card-body">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Employee</th>
+                    <th>Leave Type</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Days</th>
+                    <th>Filed By</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody-pending">
+                  <tr><td colspan="8"><div class="skeleton-row"></div></td></tr>
+                  <tr><td colspan="8"><div class="skeleton-row"></div></td></tr>
+                  <tr><td colspan="8"><div class="skeleton-row"></div></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div id="empty-pending" class="table-empty hidden">
+              <div class="empty-state">
+                <div class="empty-state-title">No Pending Leave</div>
+                <div class="empty-state-body">No leave applications awaiting approval.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- All Leave Tab -->
+      <div class="tab-pane hidden" id="tab-all">
+        <div class="card">
+          <div class="card-body">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Employee</th>
+                    <th>Leave Type</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Days</th>
+                    <th>Filed By</th>
+                    <th>Status</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="tbody-all">
+                  <tr><td colspan="8"><div class="skeleton-row"></div></td></tr>
+                  <tr><td colspan="8"><div class="skeleton-row"></div></td></tr>
+                  <tr><td colspan="8"><div class="skeleton-row"></div></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div id="empty-all" class="table-empty hidden">
+              <div class="empty-state">
+                <div class="empty-state-title">No Leave Records</div>
+                <div class="empty-state-body">No leave applications match your filters.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Balances Tab -->
+      <div class="tab-pane hidden" id="tab-balances">
+        <div class="card">
+          <div class="card-body">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Employee</th>
+                    <th>VL Balance</th>
+                    <th>SL Balance</th>
+                    <th>VL Used</th>
+                    <th>SL Used</th>
+                    <th>VL Remaining</th>
+                    <th>SL Remaining</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody-balances">
+                  <tr><td colspan="7"><div class="skeleton-row"></div></td></tr>
+                  <tr><td colspan="7"><div class="skeleton-row"></div></td></tr>
+                  <tr><td colspan="7"><div class="skeleton-row"></div></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div id="empty-balances" class="table-empty hidden">
+              <div class="empty-state">
+                <div class="empty-state-title">No Balance Records</div>
+                <div class="empty-state-body">No employees found.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- Apply Leave Modal -->
+<div class="modal-overlay" id="modal-apply">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Apply Leave</div>
+      <button class="modal-close" onclick="closeModal('modal-apply')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Employee</label>
+        <select class="form-select" id="apply-employee">
+          <option value="">— Select Employee —</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Leave Type</label>
+        <select class="form-select" id="apply-type">
+          <option value="">— Select Type —</option>
+          <option value="VL">Vacation Leave (VL)</option>
+          <option value="SL">Sick Leave (SL)</option>
+        </select>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Start Date</label>
+          <input class="form-input" type="date" id="apply-start"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">End Date</label>
+          <input class="form-input" type="date" id="apply-end"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Reason</label>
+        <textarea class="form-textarea" id="apply-reason" rows="3" placeholder="Reason for leave..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-apply')">Cancel</button>
+      <button class="btn btn-primary" id="btn-apply-submit">Apply Leave</button>
+    </div>
+  </div>
+</div>
+
+<!-- Year-End Cashout Modal -->
+<div class="modal-overlay" id="modal-cashout">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Year-End SL Cashout</div>
+      <button class="modal-close" onclick="closeModal('modal-cashout')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p class="t-secondary" style="margin-bottom:var(--space-md);">
+        This will process the year-end SL cashout for all eligible employees.
+        Unused SL credits will be converted to pay. This action cannot be undone.
+      </p>
+      <div class="form-group">
+        <label class="form-label">Company</label>
+        <select class="form-select" id="cashout-company">
+          <option value="">All Companies</option>
+          <option value="UTH">UTH</option>
+          <option value="SSH">SSH</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Year</label>
+        <input class="form-input" type="number" id="cashout-year" placeholder="e.g. 2026"/>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-cashout')">Cancel</button>
+      <button class="btn btn-danger" id="btn-cashout-confirm">Process Cashout</button>
+    </div>
+  </div>
+</div>
+
+<!-- Deny Reason Modal -->
+<div class="modal-overlay" id="modal-deny">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Deny Leave</div>
+      <button class="modal-close" onclick="closeModal('modal-deny')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Reason <span class="t-caption">(optional)</span></label>
+        <textarea class="form-textarea" id="deny-reason" rows="3" placeholder="Provide a reason..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-deny')">Cancel</button>
+      <button class="btn btn-danger" id="btn-deny-confirm">Confirm Deny</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/config.js"></script>
+<script src="/js/auth.js"></script>
+<script>
+let currentUser = null;
+let canApprove  = false;
+let pendingDenyId = null;
+
+const LEAVE_TYPE_LABELS = { VL: 'Vacation Leave', SL: 'Sick Leave', EL: 'Emergency Leave' };
+
+function statusTag(status) {
+  const map = {
+    pending:   'tag-warning',
+    approved:  'tag-active',
+    denied:    'tag-error',
+    on_leave:  'tag-neutral',
+  };
+  return `<span class="tag ${map[status] || 'tag-neutral'}">${(status || '—').replace('_',' ').toUpperCase()}</span>`;
+}
+
+function applyFilters(rows) {
+  const emp     = document.getElementById('filter-employee').value.toLowerCase().trim();
+  const company = document.getElementById('filter-company').value;
+  const status  = document.getElementById('filter-status').value;
+  const type    = document.getElementById('filter-type').value;
+  return rows.filter(r => {
+    if (emp     && !(r.employee_name || '').toLowerCase().includes(emp)) return false;
+    if (company && r.company_code !== company)                           return false;
+    if (status  && r.status !== status)                                  return false;
+    if (type    && r.leave_type !== type)                                return false;
+    return true;
+  });
+}
+
+function buildLeaveRow(r, showActions) {
+  const actions = showActions && r.status === 'pending'
+    ? `<button class="btn btn-sm btn-primary" onclick="approveLeave(${r.leave_id})">Approve</button>
+       <button class="btn btn-sm btn-danger" style="margin-left:4px;" onclick="openDeny(${r.leave_id})">Deny</button>`
+    : `<button class="btn btn-ghost btn-sm" onclick="viewLeave(${r.leave_id})">View</button>`;
+
+  const days = r.days_count != null ? r.days_count : '—';
+
+  return `<tr>
+    <td style="font-size:13px;font-weight:500;">${r.employee_name || '—'}</td>
+    <td><span class="tag tag-neutral" style="font-size:10px;">${r.leave_type || '—'}</span></td>
+    <td class="t-caption">${fmtDate(r.date_from)}</td>
+    <td class="t-caption">${fmtDate(r.date_to)}</td>
+    <td class="t-caption" style="text-align:center;">${days}</td>
+    <td style="font-size:12px;color:var(--text-secondary);">${r.filed_by_name || r.filed_by || '—'}</td>
+    <td>${statusTag(r.status)}</td>
+    <td>${actions}</td>
+  </tr>`;
+}
+
+function renderLeaveTable(tbodyId, emptyId, rows, showActions) {
+  const tbody = document.getElementById(tbodyId);
+  const empty = document.getElementById(emptyId);
+  if (!rows.length) {
+    tbody.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+  tbody.innerHTML = rows.map(r => buildLeaveRow(r, showActions)).join('');
+}
+
+async function loadPending() {
+  try {
+    const data = await apiFetch('/leave?status=pending');
+    const rows = applyFilters(data?.data || []);
+    renderLeaveTable('tbody-pending', 'empty-pending', rows, canApprove);
+  } catch {
+    document.getElementById('tbody-pending').innerHTML =
+      `<tr><td colspan="8" class="t-caption" style="font-family:var(--font-mono);padding:var(--space-md) 0;">[ FAILED TO LOAD ]</td></tr>`;
+  }
+}
+
+async function loadAll() {
+  try {
+    const status  = document.getElementById('filter-status').value;
+    const type    = document.getElementById('filter-type').value;
+    let url = '/leave?';
+    if (status) url += `status=${status}&`;
+    if (type)   url += `leave_type=${type}&`;
+    const data = await apiFetch(url);
+    const rows = applyFilters(data?.data || []);
+    renderLeaveTable('tbody-all', 'empty-all', rows, false);
+  } catch {
+    document.getElementById('tbody-all').innerHTML =
+      `<tr><td colspan="8" class="t-caption" style="font-family:var(--font-mono);padding:var(--space-md) 0;">[ FAILED TO LOAD ]</td></tr>`;
+  }
+}
+
+async function loadBalances() {
+  const tbody = document.getElementById('tbody-balances');
+  try {
+    const data = await apiFetch('/leave/balances');
+    const rows = data?.data || [];
+    if (!rows.length) {
+      tbody.innerHTML = '';
+      document.getElementById('empty-balances').classList.remove('hidden');
+      return;
+    }
+    document.getElementById('empty-balances').classList.add('hidden');
+    tbody.innerHTML = rows.map(r => `
+      <tr>
+        <td style="font-size:13px;font-weight:500;">${r.employee_name || formatEmployeeName(r) || '—'}</td>
+        <td style="text-align:center;">${r.vl_total    ?? '—'}</td>
+        <td style="text-align:center;">${r.sl_total    ?? '—'}</td>
+        <td style="text-align:center;">${r.vl_used     ?? '—'}</td>
+        <td style="text-align:center;">${r.sl_used     ?? '—'}</td>
+        <td style="text-align:center;font-weight:500;color:var(--accent);">${r.vl_remaining ?? '—'}</td>
+        <td style="text-align:center;font-weight:500;color:var(--accent);">${r.sl_remaining ?? '—'}</td>
+      </tr>`).join('');
+  } catch {
+    tbody.innerHTML =
+      `<tr><td colspan="7" class="t-caption" style="font-family:var(--font-mono);padding:var(--space-md) 0;">[ FAILED TO LOAD ]</td></tr>`;
+  }
+}
+
+async function approveLeave(id) {
+  try {
+    await apiFetch(`/leave/${id}/approve`, { method: 'POST' });
+    showToast('Leave approved.', 'success');
+    loadPending();
+    loadAll();
+  } catch (err) {
+    showToast(err.message || 'Failed to approve.', 'error');
+  }
+}
+
+function openDeny(id) {
+  pendingDenyId = id;
+  document.getElementById('deny-reason').value = '';
+  openModal('modal-deny');
+}
+
+async function confirmDeny() {
+  if (!pendingDenyId) return;
+  const reason = document.getElementById('deny-reason').value.trim();
+  try {
+    await apiFetch(`/leave/${pendingDenyId}/deny`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+    showToast('Leave denied.', 'success');
+    closeModal('modal-deny');
+    pendingDenyId = null;
+    loadPending();
+    loadAll();
+  } catch (err) {
+    showToast(err.message || 'Failed to deny.', 'error');
+  }
+}
+
+function viewLeave(id) {
+  showToast(`Leave #${id} — detail view coming soon.`, 'info');
+}
+
+async function loadEmployeesForApply() {
+  try {
+    const data = await apiFetch('/employees?is_active=1');
+    const rows = data?.data || [];
+    const sel  = document.getElementById('apply-employee');
+    sel.innerHTML = '<option value="">— Select Employee —</option>' +
+      rows.map(e => `<option value="${e.employee_id}">${formatEmployeeName(e)}</option>`).join('');
+  } catch { /* non-fatal */ }
+}
+
+async function submitLeave() {
+  const empId  = document.getElementById('apply-employee').value;
+  const type   = document.getElementById('apply-type').value;
+  const start  = document.getElementById('apply-start').value;
+  const end    = document.getElementById('apply-end').value;
+  const reason = document.getElementById('apply-reason').value.trim();
+
+  if (!empId || !type || !start || !end) {
+    showToast('Please fill in all required fields.', 'error');
+    return;
+  }
+  if (end < start) {
+    showToast('End date cannot be before start date.', 'error');
+    return;
+  }
+  try {
+    await apiFetch('/leave', {
+      method: 'POST',
+      body: JSON.stringify({
+        employee_id: empId,
+        leave_type:  type,
+        date_from:   start,
+        date_to:     end,
+        reason,
+      }),
+    });
+    showToast('Leave application submitted.', 'success');
+    closeModal('modal-apply');
+    loadPending();
+    loadAll();
+  } catch (err) {
+    showToast(err.message || 'Failed to submit leave.', 'error');
+  }
+}
+
+async function processCashout() {
+  const company = document.getElementById('cashout-company').value;
+  const year    = document.getElementById('cashout-year').value;
+  if (!year) {
+    showToast('Please enter a year.', 'error');
+    return;
+  }
+  try {
+    await apiFetch('/leave/cashout', {
+      method: 'POST',
+      body: JSON.stringify({ company_id: company || undefined, year: parseInt(year) }),
+    });
+    showToast('Year-end cashout processed.', 'success');
+    closeModal('modal-cashout');
+  } catch (err) {
+    showToast(err.message || 'Failed to process cashout.', 'error');
+  }
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.tab === tab);
+  });
+  document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden'));
+  document.getElementById(`tab-${tab}`).classList.remove('hidden');
+
+  if (tab === 'pending')  loadPending();
+  if (tab === 'all')      loadAll();
+  if (tab === 'balances') loadBalances();
+}
+
+function initPage(user) {
+  currentUser = user;
+  canApprove  = ['super_admin', 'hr'].includes(user.role);
+
+  /* Role banner */
+  if (user.role === 'admin') {
+    document.getElementById('banner-viewonly').classList.remove('hidden');
+  }
+
+  /* Page actions */
+  const actions = document.getElementById('page-actions');
+  if (canApprove) {
+    actions.innerHTML = `
+      <button class="btn btn-secondary" id="btn-cashout">Year-End Cashout</button>
+      <button class="btn btn-primary"   id="btn-apply">Apply Leave</button>`;
+  } else if (user.role === 'coord') {
+    actions.innerHTML = `<button class="btn btn-primary" id="btn-apply">Apply Leave</button>`;
+  }
+
+  actions.addEventListener('click', e => {
+    if (e.target.id === 'btn-apply') {
+      loadEmployeesForApply();
+      openModal('modal-apply');
+    }
+    if (e.target.id === 'btn-cashout') {
+      document.getElementById('cashout-year').value = new Date().getFullYear();
+      openModal('modal-cashout');
+    }
+  });
+
+  /* Filter listeners */
+  ['filter-employee','filter-company','filter-status','filter-type'].forEach(id => {
+    document.getElementById(id)?.addEventListener('input', () => {
+      const active = document.querySelector('.tab-item.active')?.dataset.tab || 'pending';
+      switchTab(active);
+    });
+  });
+
+  /* Tabs */
+  document.querySelectorAll('.tab-item').forEach(el => {
+    el.addEventListener('click', () => switchTab(el.dataset.tab));
+  });
+
+  /* Modal buttons */
+  document.getElementById('btn-apply-submit').addEventListener('click', submitLeave);
+  document.getElementById('btn-cashout-confirm').addEventListener('click', processCashout);
+  document.getElementById('btn-deny-confirm').addEventListener('click', confirmDeny);
+
+  /* Initial load */
+  loadPending();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const user = requireRole('super_admin', 'hr', 'coord', 'admin');
+  if (!user) return;
+  buildShell(user, 'leave', 'Leave');
+  initPage(user);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Devices — MINERVA HRIS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&family=Space+Mono:wght@400;700&family=Doto:wght@100..900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/css/shared.css"/>
+</head>
+<body>
+<div id="app">
+  <nav id="sidebar"></nav>
+  <div id="main">
+    <header id="topbar"></header>
+    <main id="page-content" class="page-content">
+
+      <!-- Page Header -->
+      <div class="page-header mb-lg">
+        <div>
+          <div class="page-title">Devices</div>
+          <div class="page-subtitle">Biometric Device Management</div>
+        </div>
+        <div class="page-actions">
+          <button class="btn btn-secondary" id="btn-sync-all">Force Sync All</button>
+          <button class="btn btn-primary"   id="btn-register">Register Device</button>
+        </div>
+      </div>
+
+      <!-- Device Status Cards -->
+      <div class="grid-2 mb-lg" id="device-cards">
+        <div class="card">
+          <div class="card-body">
+            <div class="skeleton-row"></div>
+            <div class="skeleton-row"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-body">
+            <div class="skeleton-row"></div>
+            <div class="skeleton-row"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs mb-md">
+        <div class="tab-item active" data-tab="logs">Raw Punch Logs</div>
+        <div class="tab-item" data-tab="reconciliation">Reconciliation</div>
+        <div class="tab-item" data-tab="queue">Command Queue</div>
+      </div>
+
+      <!-- Raw Punch Logs Tab -->
+      <div class="tab-pane" id="tab-logs">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Raw Punch Logs</div>
+            <span class="t-caption" id="logs-count" style="font-family:var(--font-mono);"></span>
+          </div>
+          <div class="card-body">
+            <div class="filter-bar mb-md">
+              <select class="filter-select" id="log-device">
+                <option value="">All Devices</option>
+              </select>
+              <input class="filter-input" type="date" id="log-date-from" style="max-width:140px;"/>
+              <span class="t-caption">to</span>
+              <input class="filter-input" type="date" id="log-date-to"   style="max-width:140px;"/>
+              <select class="filter-select" id="log-direction">
+                <option value="">All Directions</option>
+                <option value="C/In">C/In</option>
+                <option value="C/Out">C/Out</option>
+              </select>
+              <button class="btn btn-secondary btn-sm" id="btn-log-search">Search</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Timestamp</th>
+                    <th>Device User ID</th>
+                    <th>Employee</th>
+                    <th>Direction</th>
+                    <th>Reconciled</th>
+                    <th>Anomaly</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody-logs">
+                  <tr><td colspan="6"><div class="skeleton-row"></div></td></tr>
+                  <tr><td colspan="6"><div class="skeleton-row"></div></td></tr>
+                  <tr><td colspan="6"><div class="skeleton-row"></div></td></tr>
+                  <tr><td colspan="6"><div class="skeleton-row"></div></td></tr>
+                  <tr><td colspan="6"><div class="skeleton-row"></div></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div id="empty-logs" class="table-empty hidden">
+              <div class="empty-state">
+                <div class="empty-state-title">No Logs Found</div>
+                <div class="empty-state-body">No punch logs match the selected filters.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reconciliation Tab -->
+      <div class="tab-pane hidden" id="tab-reconciliation">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Reconciliation</div>
+            <span class="t-caption" id="recon-summary" style="font-family:var(--font-mono);"></span>
+          </div>
+          <div class="card-body">
+            <div class="filter-bar mb-md">
+              <select class="filter-select" id="recon-status">
+                <option value="">All Statuses</option>
+                <option value="resolved">Resolved</option>
+                <option value="fixable">Fixable</option>
+                <option value="unresolved">Unresolved</option>
+              </select>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Device UID</th>
+                    <th>Raw Name</th>
+                    <th>Employee Match</th>
+                    <th>Tier</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody-recon">
+                  <tr><td colspan="6"><div class="skeleton-row"></div></td></tr>
+                  <tr><td colspan="6"><div class="skeleton-row"></div></td></tr>
+                  <tr><td colspan="6"><div class="skeleton-row"></div></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div id="empty-recon" class="table-empty hidden">
+              <div class="empty-state">
+                <div class="empty-state-title">No Unresolved Records</div>
+                <div class="empty-state-body">All biometric UIDs are matched to employees.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Command Queue Tab -->
+      <div class="tab-pane hidden" id="tab-queue">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Command Queue</div>
+          </div>
+          <div class="card-body">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Device</th>
+                    <th>Command</th>
+                    <th>User</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th>Acknowledged</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody-queue">
+                  <tr><td colspan="6"><div class="skeleton-row"></div></td></tr>
+                  <tr><td colspan="6"><div class="skeleton-row"></div></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div id="empty-queue" class="table-empty hidden">
+              <div class="empty-state">
+                <div class="empty-state-title">No Commands</div>
+                <div class="empty-state-body">The command queue is empty.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- Register Device Modal -->
+<div class="modal-overlay" id="modal-register">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Register Device</div>
+      <button class="modal-close" onclick="closeModal('modal-register')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Device Code</label>
+        <input class="form-input" type="text" id="reg-code" placeholder="e.g. UTH-001"/>
+        <div class="form-hint">Unique identifier for this device.</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Device Name</label>
+        <input class="form-input" type="text" id="reg-name" placeholder="e.g. UTH Main Entrance"/>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">IP Address</label>
+          <input class="form-input" type="text" id="reg-ip" placeholder="192.168.1.x"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Port</label>
+          <input class="form-input" type="number" id="reg-port" value="4370"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Company</label>
+        <select class="form-select" id="reg-company">
+          <option value="">— Select Company —</option>
+          <option value="UTH">UTH</option>
+          <option value="SSH">SSH</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Serial Number</label>
+        <input class="form-input" type="text" id="reg-serial" placeholder="Device serial number"/>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-register')">Cancel</button>
+      <button class="btn btn-primary" id="btn-register-confirm">Register</button>
+    </div>
+  </div>
+</div>
+
+<!-- Link Employee Modal -->
+<div class="modal-overlay" id="modal-link">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Link Employee to Biometric UID</div>
+      <button class="modal-close" onclick="closeModal('modal-link')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Device UID</label>
+        <input class="form-input" type="text" id="link-uid" readonly/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Raw Name from Device</label>
+        <input class="form-input" type="text" id="link-raw-name" readonly/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Employee</label>
+        <select class="form-select" id="link-employee">
+          <option value="">— Search and select employee —</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Reason for Manual Link</label>
+        <textarea class="form-textarea" id="link-reason" rows="2" placeholder="e.g. Name mismatch in device enrollment"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-link')">Cancel</button>
+      <button class="btn btn-primary" id="btn-link-confirm">Link Employee</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/config.js"></script>
+<script src="/js/auth.js"></script>
+<script>
+let currentUser  = null;
+let allDevices   = [];
+let linkLogId    = null;
+
+/* ---- Device cards ---- */
+function buildDeviceCard(device) {
+  const isOnline = !!device.is_online;
+  const statusCls = isOnline ? 'tag-active' : 'tag-error';
+  const statusTxt = isOnline ? 'ONLINE' : 'OFFLINE';
+  const lastSync  = device.last_sync_at  ? fmtDateTime(device.last_sync_at)  : '—';
+  const lastPunch = device.last_punch_at ? fmtDateTime(device.last_punch_at) : '—';
+
+  return `
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">${device.device_name || device.device_code || '—'}</div>
+        <span class="tag ${statusCls}">${statusTxt}</span>
+      </div>
+      <div class="card-body">
+        <div style="display:flex;flex-direction:column;gap:var(--space-sm);">
+          <div class="t-caption">IP: <span style="font-family:var(--font-mono);color:var(--text-primary);">${device.ip_address || '—'}</span></div>
+          <div class="t-caption">Serial: <span style="font-family:var(--font-mono);color:var(--text-primary);">${device.serial_number || '—'}</span></div>
+          <div class="t-caption">Company: <span style="color:var(--text-primary);">${device.company_code || '—'}</span></div>
+          <div class="t-caption">Last sync: ${lastSync}</div>
+          <div class="t-caption">Last punch: ${lastPunch}</div>
+        </div>
+        <div style="display:flex;gap:var(--space-sm);margin-top:var(--space-md);">
+          <button class="btn btn-secondary btn-sm" onclick="forceSync(${device.device_id})">Force Sync</button>
+          <button class="btn btn-ghost btn-sm" onclick="viewDeviceLogs(${device.device_id})">View Logs</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+async function loadDevices() {
+  const container = document.getElementById('device-cards');
+  const logSel    = document.getElementById('log-device');
+  try {
+    const data = await apiFetch('/devices');
+    allDevices  = data?.data || [];
+
+    if (allDevices.length) {
+      container.innerHTML = allDevices.map(buildDeviceCard).join('');
+      logSel.innerHTML = '<option value="">All Devices</option>' +
+        allDevices.map(d =>
+          `<option value="${d.device_id}">${d.device_name || d.device_code}</option>`
+        ).join('');
+    } else {
+      container.innerHTML = `
+        <div class="card"><div class="card-body">
+          <div class="empty-state"><div class="empty-state-title">No Devices Registered</div></div>
+        </div></div>`;
+    }
+  } catch {
+    container.innerHTML = `
+      <div class="card"><div class="card-body">
+        <div class="t-caption" style="font-family:var(--font-mono);">[ FAILED TO LOAD DEVICES ]</div>
+      </div></div>`;
+  }
+}
+
+/* ---- Force sync ---- */
+async function forceSync(deviceId) {
+  try {
+    showToast('Sync triggered — running in background.', 'info');
+    await apiFetch(`/devices/${deviceId}/sync`, { method: 'POST' });
+    showToast('Sync completed.', 'success');
+    loadDevices();
+  } catch (err) {
+    showToast(err.message || 'Sync failed.', 'error');
+  }
+}
+
+async function syncAll() {
+  try {
+    showToast('Syncing all devices…', 'info');
+    await Promise.all(allDevices.map(d => apiFetch(`/devices/${d.device_id}/sync`, { method: 'POST' }).catch(() => null)));
+    showToast('All devices synced.', 'success');
+    loadDevices();
+  } catch (err) {
+    showToast(err.message || 'Sync failed.', 'error');
+  }
+}
+
+/* ---- Raw punch logs ---- */
+function viewDeviceLogs(deviceId) {
+  document.getElementById('log-device').value = deviceId;
+  switchTab('logs');
+  loadLogs();
+}
+
+async function loadLogs() {
+  const tbody = document.getElementById('tbody-logs');
+  const empty = document.getElementById('empty-logs');
+  const deviceId = document.getElementById('log-device').value;
+  const from     = document.getElementById('log-date-from').value;
+  const to       = document.getElementById('log-date-to').value;
+  const dir      = document.getElementById('log-direction').value;
+
+  let url = deviceId ? `/devices/${deviceId}/logs?` : '/devices/logs?';
+  if (from) url += `from=${from}&`;
+  if (to)   url += `to=${to}&`;
+  if (dir)  url += `direction=${encodeURIComponent(dir)}&`;
+
+  tbody.innerHTML = '<tr><td colspan="6"><div class="skeleton-row"></div></td></tr>'.repeat(4);
+  empty.classList.add('hidden');
+
+  try {
+    const data = await apiFetch(url);
+    const rows = data?.data || [];
+    document.getElementById('logs-count').textContent = rows.length ? `${rows.length} records` : '';
+
+    if (!rows.length) {
+      tbody.innerHTML = '';
+      empty.classList.remove('hidden');
+      return;
+    }
+
+    tbody.innerHTML = rows.map(r => {
+      const dir      = r.new_state || r.state || '—';
+      const isIn     = dir.toLowerCase() === 'c/in';
+      const dirTag   = `<span class="tag ${isIn ? 'tag-active' : 'tag-neutral'}" style="font-size:10px;">${dir}</span>`;
+      const reconTag = r.reconciliation_status === 'resolved'
+        ? `<span class="tag tag-active" style="font-size:10px;">RESOLVED</span>`
+        : r.reconciliation_status === 'fixable'
+          ? `<span class="tag tag-warning" style="font-size:10px;">FIXABLE</span>`
+          : `<span class="tag tag-error"   style="font-size:10px;">${(r.reconciliation_status || 'UNRESOLVED').toUpperCase()}</span>`;
+      const anomTag  = r.anomaly_flag
+        ? `<span class="tag tag-error" style="font-size:10px;">YES</span>`
+        : `<span class="tag tag-neutral" style="font-size:10px;">—</span>`;
+
+      return `<tr>
+        <td style="font-size:12px;font-family:var(--font-mono);">${fmtDateTime(r.record_time)}</td>
+        <td style="font-size:12px;font-family:var(--font-mono);">${r.device_user_id || '—'}</td>
+        <td style="font-size:13px;">${r.employee_name || '—'}</td>
+        <td>${dirTag}</td>
+        <td>${reconTag}</td>
+        <td>${anomTag}</td>
+      </tr>`;
+    }).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="6" class="t-caption" style="font-family:var(--font-mono);padding:var(--space-md) 0;">[ FAILED TO LOAD — ${err.message} ]</td></tr>`;
+  }
+}
+
+/* ---- Reconciliation ---- */
+async function loadReconciliation() {
+  const tbody  = document.getElementById('tbody-recon');
+  const empty  = document.getElementById('empty-recon');
+  const status = document.getElementById('recon-status').value;
+
+  tbody.innerHTML = '<tr><td colspan="6"><div class="skeleton-row"></div></td></tr>'.repeat(3);
+  empty.classList.add('hidden');
+
+  try {
+    let url = '/devices/unresolved';
+    if (status) url += `?status=${status}`;
+    const data = await apiFetch(url);
+    const rows = data?.data || [];
+
+    const summary = document.getElementById('recon-summary');
+    summary.textContent = rows.length ? `${rows.length} record${rows.length !== 1 ? 's' : ''}` : '';
+
+    if (!rows.length) {
+      tbody.innerHTML = '';
+      empty.classList.remove('hidden');
+      return;
+    }
+
+    tbody.innerHTML = rows.map(r => {
+      const statusCls = {
+        resolved:   'tag-active',
+        fixable:    'tag-warning',
+        unresolved: 'tag-error',
+      }[r.reconciliation_status] || 'tag-neutral';
+
+      const tier = r.match_tier != null ? `Tier ${r.match_tier}` : '—';
+
+      const action = ['fixable','unresolved'].includes(r.reconciliation_status)
+        ? `<button class="btn btn-xs btn-secondary" onclick="openLink(${r.log_id}, '${r.device_user_id}', ${JSON.stringify(r.employee_name_raw || '')})">Link</button>`
+        : `<span class="t-caption">—</span>`;
+
+      return `<tr>
+        <td style="font-size:12px;font-family:var(--font-mono);">${r.device_user_id || '—'}</td>
+        <td style="font-size:12px;">${r.employee_name_raw || '—'}</td>
+        <td style="font-size:13px;">${r.employee_name || '—'}</td>
+        <td class="t-caption">${tier}</td>
+        <td><span class="tag ${statusCls}" style="font-size:10px;">${(r.reconciliation_status || '—').toUpperCase()}</span></td>
+        <td>${action}</td>
+      </tr>`;
+    }).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="6" class="t-caption" style="font-family:var(--font-mono);padding:var(--space-md) 0;">[ FAILED TO LOAD — ${err.message} ]</td></tr>`;
+  }
+}
+
+/* ---- Link modal ---- */
+async function openLink(logId, uid, rawName) {
+  linkLogId = logId;
+  document.getElementById('link-uid').value      = uid      || '';
+  document.getElementById('link-raw-name').value = rawName  || '';
+  document.getElementById('link-reason').value   = '';
+
+  // Load employees
+  try {
+    const data = await apiFetch('/employees?is_active=1');
+    const rows = data?.data || [];
+    document.getElementById('link-employee').innerHTML =
+      '<option value="">— Select Employee —</option>' +
+      rows.map(e => `<option value="${e.employee_id}">${formatEmployeeName(e)}</option>`).join('');
+  } catch { /* non-fatal */ }
+
+  openModal('modal-link');
+}
+
+async function confirmLink() {
+  const empId  = document.getElementById('link-employee').value;
+  const reason = document.getElementById('link-reason').value.trim();
+  if (!empId) {
+    showToast('Please select an employee.', 'error');
+    return;
+  }
+  try {
+    await apiFetch(`/devices/logs/${linkLogId}/link`, {
+      method: 'POST',
+      body: JSON.stringify({ employee_id: empId, reason }),
+    });
+    showToast('Employee linked successfully.', 'success');
+    closeModal('modal-link');
+    linkLogId = null;
+    loadReconciliation();
+  } catch (err) {
+    showToast(err.message || 'Link failed.', 'error');
+  }
+}
+
+/* ---- Command queue ---- */
+async function loadQueue() {
+  const tbody = document.getElementById('tbody-queue');
+  const empty = document.getElementById('empty-queue');
+  tbody.innerHTML = '<tr><td colspan="6"><div class="skeleton-row"></div></td></tr>'.repeat(2);
+  empty.classList.add('hidden');
+
+  try {
+    const data = await apiFetch('/devices/commands');
+    const rows = data?.data || [];
+
+    if (!rows.length) {
+      tbody.innerHTML = '';
+      empty.classList.remove('hidden');
+      return;
+    }
+
+    tbody.innerHTML = rows.map(r => {
+      const statusCls = {
+        PENDING:      'tag-warning',
+        SENT:         'tag-neutral',
+        ACKNOWLEDGED: 'tag-active',
+      }[r.status] || 'tag-neutral';
+
+      return `<tr>
+        <td style="font-size:13px;">${r.device_name || r.device_id || '—'}</td>
+        <td style="font-size:12px;font-family:var(--font-mono);">${r.command_type || '—'}</td>
+        <td style="font-size:12px;">${r.target_user || '—'}</td>
+        <td><span class="tag ${statusCls}" style="font-size:10px;">${r.status || '—'}</span></td>
+        <td class="t-caption">${fmtDateTime(r.created_at)}</td>
+        <td class="t-caption">${r.acknowledged_at ? fmtDateTime(r.acknowledged_at) : '—'}</td>
+      </tr>`;
+    }).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="6" class="t-caption" style="font-family:var(--font-mono);padding:var(--space-md) 0;">[ FAILED TO LOAD — ${err.message} ]</td></tr>`;
+  }
+}
+
+/* ---- Register device ---- */
+async function registerDevice() {
+  const code    = document.getElementById('reg-code').value.trim();
+  const name    = document.getElementById('reg-name').value.trim();
+  const ip      = document.getElementById('reg-ip').value.trim();
+  const port    = document.getElementById('reg-port').value || 4370;
+  const company = document.getElementById('reg-company').value;
+  const serial  = document.getElementById('reg-serial').value.trim();
+
+  if (!code || !name || !ip || !company || !serial) {
+    showToast('Please fill in all required fields.', 'error');
+    return;
+  }
+  try {
+    await apiFetch('/devices', {
+      method: 'POST',
+      body: JSON.stringify({
+        device_code:   code,
+        device_name:   name,
+        ip_address:    ip,
+        port:          parseInt(port),
+        company_code:  company,
+        serial_number: serial,
+      }),
+    });
+    showToast('Device registered.', 'success');
+    closeModal('modal-register');
+    loadDevices();
+  } catch (err) {
+    showToast(err.message || 'Registration failed.', 'error');
+  }
+}
+
+/* ---- Tab switching ---- */
+function switchTab(tab) {
+  document.querySelectorAll('.tab-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.tab === tab);
+  });
+  document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden'));
+  document.getElementById(`tab-${tab}`).classList.remove('hidden');
+
+  if (tab === 'logs')            loadLogs();
+  if (tab === 'reconciliation')  loadReconciliation();
+  if (tab === 'queue')           loadQueue();
+}
+
+function initPage(user) {
+  currentUser = user;
+
+  document.getElementById('btn-register').addEventListener('click', () => openModal('modal-register'));
+  document.getElementById('btn-sync-all').addEventListener('click', syncAll);
+  document.getElementById('btn-log-search').addEventListener('click', loadLogs);
+  document.getElementById('btn-register-confirm').addEventListener('click', registerDevice);
+  document.getElementById('btn-link-confirm').addEventListener('click', confirmLink);
+
+  document.getElementById('recon-status').addEventListener('change', loadReconciliation);
+
+  document.querySelectorAll('.tab-item').forEach(el => {
+    el.addEventListener('click', () => switchTab(el.dataset.tab));
+  });
+
+  loadDevices();
+  loadLogs();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const user = requireRole('super_admin', 'it');
+  if (!user) return;
+  buildShell(user, 'devices', 'Devices');
+  initPage(user);
+});
+</script>
+</body>
+</html>
